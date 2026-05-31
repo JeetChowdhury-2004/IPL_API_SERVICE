@@ -1,13 +1,22 @@
 from .database import get_connection
 
 
-def insert_match(match_data):
+def insert_match(match_data, conn=None):
 
-    conn = get_connection()
+    own_connection = False
+
+    if conn is None:
+
+        conn = get_connection()
+
+        own_connection = True
+
     cursor = conn.cursor()
 
     cursor.execute("""
+
         INSERT INTO matches (
+
             match_id,
             season,
             match_date,
@@ -28,8 +37,11 @@ def insert_match(match_data):
             is_playoff,
             umpire1,
             umpire2
+
         )
+
         VALUES (
+
             %(match_id)s,
             %(season)s,
             %(match_date)s,
@@ -50,11 +62,22 @@ def insert_match(match_data):
             %(is_playoff)s,
             %(umpire1)s,
             %(umpire2)s
+
         )
-        ON CONFLICT (match_id) DO NOTHING
+
+        ON CONFLICT (match_id)
+
+        DO UPDATE SET
+
+            match_stage = EXCLUDED.match_stage,
+            is_playoff = EXCLUDED.is_playoff
+
     """, match_data)
 
-    conn.commit()
+    if own_connection:
 
-    cursor.close()
-    conn.close()
+        conn.commit()
+
+        cursor.close()
+
+        conn.close()
