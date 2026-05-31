@@ -4,13 +4,14 @@ import json
 import os
 
 
-# =========================
+# =========================================
 # PROJECT ROOT SETUP
-# =========================
+# =========================================
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 if str(PROJECT_ROOT) not in sys.path:
+
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
@@ -18,18 +19,24 @@ from database.insert_deliveries import insert_deliveries
 from database.insert_wickets import insert_wickets
 
 
-# =========================
+# =========================================
 # HELPERS
-# =========================
+# =========================================
 
-def make_delivery_key(match_id, innings, over_no, ball_no):
+def make_delivery_key(
+
+    match_id,
+    innings,
+    over_no,
+    ball_no
+):
 
     return f"{match_id}_{innings}_{over_no}_{ball_no}"
 
 
-# =========================
+# =========================================
 # MAIN
-# =========================
+# =========================================
 
 folder = PROJECT_ROOT / "raw_data" / "json_matches"
 
@@ -43,18 +50,18 @@ files = [
 print(f"Total files: {len(files)}")
 
 
-# =========================
+# =========================================
 # BATCH STORAGE
-# =========================
+# =========================================
 
 all_deliveries = []
 
 all_wickets = []
 
 
-# =========================
+# =========================================
 # PROCESS FILES
-# =========================
+# =========================================
 
 for file in files:
 
@@ -64,17 +71,22 @@ for file in files:
 
         data = json.load(f)
 
-    match_id = int(file.replace(".json", ""))
+    match_id = int(
+        file.replace(".json", "")
+    )
 
     info = data.get("info", {})
 
     teams = info.get("teams", [])
 
-    innings_data = data.get("innings", [])
+    innings_data = data.get(
+        "innings",
+        []
+    )
 
-    # =========================
+    # =====================================
     # LOOP INNINGS
-    # =========================
+    # =====================================
 
     for innings_no, inning in enumerate(
 
@@ -83,25 +95,36 @@ for file in files:
         start=1
     ):
 
-        # Skip super overs for now
-        if innings_no > 2:
-            continue
-
         batting_team = inning.get("team")
 
-        bowling_team = [
+        # =================================
+        # BOWLING TEAM
+        # =================================
+
+        bowling_team_list = [
 
             t for t in teams
 
             if t != batting_team
+        ]
 
-        ][0]
+        bowling_team = (
 
-        overs = inning.get("overs", [])
+            bowling_team_list[0]
 
-        # =========================
+            if bowling_team_list
+
+            else None
+        )
+
+        overs = inning.get(
+            "overs",
+            []
+        )
+
+        # =================================
         # LOOP OVERS
-        # =========================
+        # =================================
 
         for over in overs:
 
@@ -114,9 +137,9 @@ for file in files:
                 []
             )
 
-            # =========================
+            # =================================
             # LOOP DELIVERIES
-            # =========================
+            # =================================
 
             for ball_no, delivery in enumerate(
 
@@ -133,46 +156,44 @@ for file in files:
                     ball_no
                 )
 
-                # =========================
+                # =============================
                 # RUNS
-                # =========================
+                # =============================
 
-                runs = delivery.get("runs", {})
+                runs = delivery.get(
+                    "runs",
+                    {}
+                )
 
                 batsman_run = runs.get(
-
                     "batter",
-
                     0
                 )
 
                 extras_run = runs.get(
-
                     "extras",
-
                     0
                 )
 
                 total_run = runs.get(
-
                     "total",
-
                     0
                 )
 
                 non_boundary = bool(
 
-                    runs.get("non_boundary", 0)
+                    runs.get(
+                        "non_boundary",
+                        0
+                    )
                 )
 
-                # =========================
+                # =============================
                 # EXTRAS
-                # =========================
+                # =============================
 
                 extras = delivery.get(
-
                     "extras",
-
                     {}
                 )
 
@@ -185,9 +206,25 @@ for file in files:
                     else None
                 )
 
-                # =========================
+                # =============================
+                # MATCH PHASE
+                # =============================
+
+                if over_no <= 5:
+
+                    phase = "powerplay"
+
+                elif over_no <= 14:
+
+                    phase = "middle"
+
+                else:
+
+                    phase = "death"
+
+                # =============================
                 # DELIVERY ROW
-                # =========================
+                # =============================
 
                 all_deliveries.append({
 
@@ -201,9 +238,13 @@ for file in files:
 
                     "ball_no": ball_no,
 
-                    "batter": delivery.get("batter"),
+                    "batter": delivery.get(
+                        "batter"
+                    ),
 
-                    "bowler": delivery.get("bowler"),
+                    "bowler": delivery.get(
+                        "bowler"
+                    ),
 
                     "non_striker": delivery.get(
                         "non_striker"
@@ -221,18 +262,7 @@ for file in files:
 
                     "extra_type": extra_type,
 
-                    "phase": (
-
-                        "powerplay"
-
-                        if over_no <= 5
-
-                        else "middle"
-
-                        if over_no <= 14
-
-                        else "death"
-                    ),
+                    "phase": phase,
 
                     "is_boundary": (
                         batsman_run in [4, 6]
@@ -244,68 +274,65 @@ for file in files:
 
                     "non_boundary": non_boundary,
 
-                    "is_super_over": (
-                        innings_no > 2
-                    )
+                    # TEMPORARY
+                    "is_super_over": False
                 })
 
-                # =========================
+                # =============================
                 # WICKETS
-                # =========================
+                # =============================
 
                 wickets = delivery.get(
-
                     "wickets",
-
                     []
                 )
 
                 if wickets:
 
-                    w = wickets[0]
+                    for w in wickets:
 
-                    fielders_data = w.get(
-
-                        "fielders",
-
-                        []
-                    )
-
-                    fielders = (
-
-                        ",".join(
-
-                            [
-
-                                x.get("name")
-
-                                for x in fielders_data
-                            ]
+                        fielders_data = w.get(
+                            "fielders",
+                            []
                         )
 
-                        if fielders_data
+                        fielders = (
 
-                        else None
-                    )
+                            ",".join(
 
-                    all_wickets.append({
+                                [
 
-                        "delivery_key": delivery_key,
+                                    x.get("name")
 
-                        "player_out": w.get(
-                            "player_out"
-                        ),
+                                    for x in fielders_data
 
-                        "dismissal_kind": w.get(
-                            "kind"
-                        ),
+                                    if x.get("name")
+                                ]
+                            )
 
-                        "fielders_involved": fielders
-                    })
+                            if fielders_data
 
-                # =========================
-                # BATCH INSERT
-                # =========================
+                            else None
+                        )
+
+                        all_wickets.append({
+
+                            "delivery_key": delivery_key,
+
+                            "player_out": w.get(
+                                "player_out"
+                            ),
+
+                            "dismissal_kind": w.get(
+                                "kind"
+                            ),
+
+                            "fielders_involved": fielders
+                        })
+
+                # =============================
+                # BATCH INSERT DELIVERIES
+                # =============================
 
                 if len(all_deliveries) >= 10000:
 
@@ -313,48 +340,48 @@ for file in files:
                         all_deliveries
                     )
 
+                    print(
+                        f"Inserted "
+                        f"{len(all_deliveries)} deliveries"
+                    )
+
                     all_deliveries.clear()
-
-                    print(
-                        "Inserted 10,000 deliveries"
-                    )
-
-                if len(all_wickets) >= 1000:
-
-                    insert_wickets(
-                        all_wickets
-                    )
-
-                    all_wickets.clear()
-
-                    print(
-                        "Inserted 1,000 wickets"
-                    )
 
     print(f"Processed match {match_id}")
 
 
-# =========================
-# FINAL INSERT
-# =========================
+# =========================================
+# FINAL INSERT DELIVERIES
+# =========================================
 
 if all_deliveries:
 
-    insert_deliveries(all_deliveries)
+    insert_deliveries(
+        all_deliveries
+    )
 
     print(
+
         f"Final insert: "
         f"{len(all_deliveries)} deliveries"
     )
 
+
+# =========================================
+# FINAL INSERT WICKETS
+# =========================================
+
 if all_wickets:
 
-    insert_wickets(all_wickets)
+    insert_wickets(
+        all_wickets
+    )
 
     print(
+
         f"Final insert: "
         f"{len(all_wickets)} wickets"
     )
 
 
-print("\nDONE - Deliveries loaded")
+print("\nDONE - Deliveries and Wickets loaded")

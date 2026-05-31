@@ -8,7 +8,10 @@ def insert_wickets(wickets):
     Batch insert wickets into PostgreSQL.
     """
 
-    # Skip empty list
+    # =====================================
+    # EMPTY CHECK
+    # =====================================
+
     if not wickets:
         return
 
@@ -16,7 +19,12 @@ def insert_wickets(wickets):
 
     cursor = conn.cursor()
 
+    # =====================================
+    # INSERT QUERY
+    # =====================================
+
     query = """
+
         INSERT INTO wickets (
 
             delivery_key,
@@ -27,21 +35,33 @@ def insert_wickets(wickets):
         )
 
         VALUES %s
+
     """
+
+    # =====================================
+    # BUILD VALUES
+    # =====================================
 
     values = [
 
         (
 
             w["delivery_key"],
+
             w["player_out"],
+
             w["dismissal_kind"],
+
             w["fielders_involved"]
 
         )
 
         for w in wickets
     ]
+
+    # =====================================
+    # INSERT
+    # =====================================
 
     try:
 
@@ -51,14 +71,15 @@ def insert_wickets(wickets):
             query,
             values,
 
-            # rows per SQL statement
             page_size=1000
         )
 
         conn.commit()
 
         print(
-            f"Inserted {len(values)} wickets"
+
+            f"Inserted "
+            f"{len(values)} wickets"
         )
 
     except Exception as e:
@@ -66,10 +87,12 @@ def insert_wickets(wickets):
         conn.rollback()
 
         print(
+
             f"Wicket batch insert failed:\n{e}"
         )
 
     finally:
 
         cursor.close()
+
         conn.close()
