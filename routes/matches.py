@@ -4,12 +4,33 @@ import sys
 from flask import Blueprint
 from flask import request
 
-# Ensure the project root is on sys.path when this module is executed directly.
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# =========================================
+# PROJECT ROOT
+# =========================================
+
+ROOT_DIR = os.path.abspath(
+
+    os.path.join(
+        os.path.dirname(__file__),
+        ".."
+    )
+)
+
 if ROOT_DIR not in sys.path:
+
     sys.path.insert(0, ROOT_DIR)
 
-from database.database import get_connection
+# =========================================
+# IMPORTS
+# =========================================
+
+from database.database import (
+    get_connection
+)
+
+from utils.team_name_normalization import (
+    normalize_team_name
+)
 
 
 # =========================================
@@ -17,7 +38,9 @@ from database.database import get_connection
 # =========================================
 
 matches_bp = Blueprint(
+
     "matches",
+
     __name__
 )
 
@@ -55,25 +78,29 @@ def execute_query(query, values=None):
 @matches_bp.route("/matches")
 def all_matches():
 
-    # =====================================
-    # QUERY PARAMS
-    # =====================================
-
     limit = request.args.get(
+
         "limit",
+
         default=10,
+
         type=int
     )
 
-    # Safety
+    # =====================================
+    # SAFETY
+    # =====================================
+
     if limit <= 0:
+
         limit = 10
 
     if limit > 100:
+
         limit = 100
 
     # =====================================
-    # SQL QUERY
+    # QUERY
     # =====================================
 
     query = """
@@ -103,19 +130,17 @@ def all_matches():
     """
 
     rows = execute_query(
+
         query,
+
         (limit,)
     )
-
-    # =====================================
-    # BUILD RESPONSE
-    # =====================================
 
     matches_list = []
 
     for row in rows:
 
-        match = {
+        matches_list.append({
 
             "match_id": row[0],
 
@@ -126,21 +151,29 @@ def all_matches():
             "venue": row[3],
 
             "teams": [
-                row[4],
-                row[5]
+
+                normalize_team_name(row[4]),
+
+                normalize_team_name(row[5])
             ],
 
             "toss": {
 
-                "winner": row[6],
+                "winner": normalize_team_name(
+                    row[6]
+                ),
+
                 "decision": row[7]
             },
 
-            "winner": row[8],
+            "winner": normalize_team_name(
+                row[8]
+            ) if row[8] else None,
 
             "result": {
 
                 "type": row[9],
+
                 "margin": row[10]
             },
 
@@ -149,13 +182,7 @@ def all_matches():
             "match_stage": row[12],
 
             "match_date": str(row[13])
-        }
-
-        matches_list.append(match)
-
-    # =====================================
-    # RESPONSE
-    # =====================================
+        })
 
     return {
 
@@ -199,7 +226,9 @@ def get_match_by_season(season):
     """
 
     rows = execute_query(
+
         query,
+
         (season,)
     )
 
@@ -207,7 +236,7 @@ def get_match_by_season(season):
 
     for row in rows:
 
-        match = {
+        matches_list.append({
 
             "match_id": row[0],
 
@@ -218,21 +247,29 @@ def get_match_by_season(season):
             "venue": row[3],
 
             "teams": [
-                row[4],
-                row[5]
+
+                normalize_team_name(row[4]),
+
+                normalize_team_name(row[5])
             ],
 
             "toss": {
 
-                "winner": row[6],
+                "winner": normalize_team_name(
+                    row[6]
+                ),
+
                 "decision": row[7]
             },
 
-            "winner": row[8],
+            "winner": normalize_team_name(
+                row[8]
+            ) if row[8] else None,
 
             "result": {
 
                 "type": row[9],
+
                 "margin": row[10]
             },
 
@@ -241,9 +278,7 @@ def get_match_by_season(season):
             "match_stage": row[12],
 
             "match_date": str(row[13])
-        }
-
-        matches_list.append(match)
+        })
 
     return {
 
@@ -262,10 +297,6 @@ def get_match_by_season(season):
 @matches_bp.route("/matches/filter")
 def filter_matches():
 
-    # ====================================
-    # QUERY PARAMETERS
-    # ====================================
-
     team = request.args.get("team")
 
     city = request.args.get("city")
@@ -273,13 +304,11 @@ def filter_matches():
     winner = request.args.get("winner")
 
     season = request.args.get(
+
         "season",
+
         type=int
     )
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -299,10 +328,6 @@ def filter_matches():
     """
 
     values = []
-
-    # ====================================
-    # FILTERS
-    # ====================================
 
     if team:
 
@@ -356,13 +381,11 @@ def filter_matches():
     """
 
     rows = execute_query(
+
         query,
+
         tuple(values)
     )
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     matches = []
 
@@ -378,11 +401,17 @@ def filter_matches():
 
             "venue": row[3],
 
-            "team1": row[4],
+            "team1": normalize_team_name(
+                row[4]
+            ),
 
-            "team2": row[5],
+            "team2": normalize_team_name(
+                row[5]
+            ),
 
-            "winner": row[6]
+            "winner": normalize_team_name(
+                row[6]
+            ) if row[6] else None
         })
 
     return {
@@ -400,33 +429,27 @@ def filter_matches():
 @matches_bp.route("/matches/head-to-head")
 def head_to_head():
 
-    # ====================================
-    # QUERY PARAMETERS
-    # ====================================
-
     team1 = request.args.get("team1")
 
     team2 = request.args.get("team2")
 
-    # ====================================
-    # VALIDATION
-    # ====================================
-
     if not team1 or not team2:
 
         return {
-            "error": "team1 and team2 are required"
+
+            "error":
+            "team1 and team2 are required"
+
         }, 400
 
     if team1 == team2:
 
         return {
-            "error": "Both teams cannot be same"
-        }, 400
 
-    # ====================================
-    # SQL QUERY
-    # ====================================
+            "error":
+            "Both teams cannot be same"
+
+        }, 400
 
     query = """
 
@@ -469,10 +492,6 @@ def head_to_head():
         )
     )
 
-    # ====================================
-    # SUMMARY
-    # ====================================
-
     total_matches = len(rows)
 
     team1_wins = 0
@@ -482,10 +501,6 @@ def head_to_head():
     no_result = 0
 
     matches = []
-
-    # ====================================
-    # PROCESS ROWS
-    # ====================================
 
     for row in rows:
 
@@ -514,11 +529,15 @@ def head_to_head():
             "venue": row[3],
 
             "teams": [
-                row[4],
-                row[5]
+
+                normalize_team_name(row[4]),
+
+                normalize_team_name(row[5])
             ],
 
-            "winner": row[6],
+            "winner": normalize_team_name(
+                row[6]
+            ) if row[6] else None,
 
             "match_date": str(row[7])
         })
@@ -527,9 +546,13 @@ def head_to_head():
 
         "summary": {
 
-            "team1": team1,
+            "team1": normalize_team_name(
+                team1
+            ),
 
-            "team2": team2,
+            "team2": normalize_team_name(
+                team2
+            ),
 
             "total_matches": total_matches,
 
@@ -541,167 +564,6 @@ def head_to_head():
         },
 
         "matches": matches
-    }
-
-
-# =========================================
-# TOSS IMPACT
-# =========================================
-
-@matches_bp.route("/matches/toss-impact")
-def toss_impact():
-
-    # ====================================
-    # QUERY PARAMETERS
-    # ====================================
-
-    season = request.args.get(
-        "season",
-        type=int
-    )
-
-    team = request.args.get("team")
-
-    city = request.args.get("city")
-
-    venue = request.args.get("venue")
-
-    toss_decision = request.args.get(
-        "toss_decision"
-    )
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
-
-    query = """
-
-        SELECT
-            toss_winner,
-            winner
-
-        FROM matches
-
-        WHERE 1=1
-
-    """
-
-    values = []
-
-    # ====================================
-    # FILTERS
-    # ====================================
-
-    if season:
-
-        query += " AND season = %s "
-        values.append(season)
-
-    if team:
-
-        query += """
-
-            AND (
-                team1 = %s
-                OR team2 = %s
-            )
-
-        """
-
-        values.extend([team, team])
-
-    if city:
-
-        query += " AND city = %s "
-        values.append(city)
-
-    if venue:
-
-        query += " AND venue = %s "
-        values.append(venue)
-
-    if toss_decision:
-
-        query += " AND toss_decision = %s "
-        values.append(toss_decision)
-
-    rows = execute_query(
-        query,
-        tuple(values)
-    )
-
-    # ====================================
-    # ANALYTICS
-    # ====================================
-
-    total_matches = len(rows)
-
-    if total_matches == 0:
-
-        return {
-
-            "message": "No matches found",
-
-            "total_matches": 0
-        }
-
-    toss_winner_wins = 0
-
-    toss_winner_losses = 0
-
-    # ====================================
-    # CALCULATE
-    # ====================================
-
-    for row in rows:
-
-        toss_winner = row[0]
-
-        winner = row[1]
-
-        if toss_winner == winner:
-
-            toss_winner_wins += 1
-
-        else:
-
-            toss_winner_losses += 1
-
-    # ====================================
-    # WIN PERCENTAGE
-    # ====================================
-
-    win_percentage = (
-
-        toss_winner_wins / total_matches
-
-    ) * 100
-
-    return {
-
-        "filters": {
-
-            "season": season,
-
-            "team": team,
-
-            "city": city,
-
-            "venue": venue,
-
-            "toss_decision": toss_decision
-        },
-
-        "total_matches": total_matches,
-
-        "toss_winner_wins": toss_winner_wins,
-
-        "toss_winner_losses": toss_winner_losses,
-
-        "win_percentage": round(
-            win_percentage,
-            2
-        )
     }
 
 
@@ -718,7 +580,9 @@ def get_all_title_winners():
 
         FROM matches
 
-        WHERE match_stage = 'Final'
+        WHERE LOWER(
+            TRIM(match_stage)
+        ) = 'final'
 
         AND winner IS NOT NULL
 
@@ -728,12 +592,18 @@ def get_all_title_winners():
 
     rows = execute_query(query)
 
-    teams = [
+    teams = sorted(
 
-        row[0]
+        list(
 
-        for row in rows
-    ]
+            set(
+
+                normalize_team_name(row[0])
+
+                for row in rows
+            )
+        )
+    )
 
     return {
 
@@ -742,7 +612,8 @@ def get_all_title_winners():
         "teams": teams
     }
 
-    # =========================================
+
+# =========================================
 # TITLE COUNTS
 # =========================================
 
@@ -757,7 +628,9 @@ def title_counts():
 
         FROM matches
 
-        WHERE match_stage = 'Final'
+        WHERE LOWER(
+            TRIM(match_stage)
+        ) = 'final'
 
         AND winner IS NOT NULL
 
@@ -776,7 +649,9 @@ def title_counts():
 
         teams.append({
 
-            "team": row[0],
+            "team": normalize_team_name(
+                row[0]
+            ),
 
             "titles": row[1]
         })
@@ -787,6 +662,7 @@ def title_counts():
 
         "title_counts": teams
     }
+
 
 # =========================================
 # MOST SUCCESSFUL TEAM
@@ -813,27 +689,16 @@ def most_successful_team():
 
     rows = execute_query(query)
 
-    # ====================================
-    # NO DATA CHECK
-    # ====================================
-
     if not rows:
 
         return {
+
             "message": "No data found"
         }
-
-    # ====================================
-    # TOP TEAM
-    # ====================================
 
     top_team = rows[0][0]
 
     total_wins = rows[0][1]
-
-    # ====================================
-    # TOTAL MATCHES PLAYED
-    # ====================================
 
     matches_query = """
 
@@ -860,23 +725,17 @@ def most_successful_team():
 
     losses = total_matches - total_wins
 
-    # ====================================
-    # WIN PERCENTAGE
-    # ====================================
-
     win_percentage = (
 
         total_wins / total_matches
 
     ) * 100
 
-    # ====================================
-    # RESPONSE
-    # ====================================
-
     return {
 
-        "team": top_team,
+        "team": normalize_team_name(
+            top_team
+        ),
 
         "total_matches": total_matches,
 
@@ -885,10 +744,13 @@ def most_successful_team():
         "losses": losses,
 
         "win_percentage": round(
+
             win_percentage,
+
             2
         )
     }
+
 
 # =========================================
 # ALL UNIQUE IPL TEAMS
@@ -921,18 +783,1273 @@ def get_all_teams():
 
     rows = execute_query(query)
 
-    teams = [
+    teams = sorted(
 
-        row[0]
+        list(
 
-        for row in rows
+            set(
 
-        if row[0] is not None
-    ]
+                normalize_team_name(row[0])
+
+                for row in rows
+
+                if row[0] is not None
+            )
+        )
+    )
 
     return {
 
         "count": len(teams),
 
         "teams": teams
+    }
+
+# =========================================
+# HIGHEST RUN CHASES
+# =========================================
+
+@matches_bp.route("/matches/highest-run-chases")
+def highest_run_chases():
+
+    # ====================================
+    # QUERY PARAMS
+    # ====================================
+
+    season = request.args.get(
+
+        "season",
+
+        type=int
+    )
+
+    team = request.args.get("team")
+
+    if team:
+
+        team = normalize_team_name(team)
+
+    # ====================================
+    # BASE QUERY
+    # ====================================
+
+    query = """
+
+        SELECT
+
+            season,
+
+            team2 AS chasing_team,
+
+            team1 AS defending_team,
+
+            venue,
+
+            city,
+
+            target_runs,
+
+            winner,
+
+            result_margin,
+
+            match_date
+
+        FROM matches
+
+        WHERE
+
+            result_type = 'wickets'
+
+            AND winner = team2
+
+            AND target_runs IS NOT NULL
+
+    """
+
+    values = []
+
+    # ====================================
+    # OPTIONAL FILTERS
+    # ====================================
+
+    if season:
+
+        query += """
+
+            AND season = %s
+
+        """
+
+        values.append(season)
+
+    if team:
+
+        query += """
+
+            AND team2 = %s
+
+        """
+
+        values.append(team)
+
+    # ====================================
+    # ORDERING
+    # ====================================
+
+    query += """
+
+        ORDER BY
+
+            target_runs DESC,
+
+            result_margin DESC
+
+        LIMIT 10
+
+    """
+
+    rows = execute_query(
+
+        query,
+
+        tuple(values)
+    )
+
+    # ====================================
+    # NO DATA
+    # ====================================
+
+    if not rows:
+
+        return {
+
+            "message": "No data found"
+        }
+
+    # ====================================
+    # RESPONSE
+    # ====================================
+
+    chases = []
+
+    for row in rows:
+
+        chases.append({
+
+            "season": row[0],
+
+            "chasing_team": normalize_team_name(
+                row[1]
+            ),
+
+            "defending_team": normalize_team_name(
+                row[2]
+            ),
+
+            "venue": row[3],
+
+            "city": row[4],
+
+            "target": row[5],
+
+            "winner": normalize_team_name(
+                row[6]
+            ),
+
+            "wickets_remaining": row[7],
+
+            "match_date": str(row[8])
+        })
+
+    return {
+
+        "count": len(chases),
+
+        "highest_run_chases": chases
+    }
+
+# =========================================
+# HIGHEST TEAM TOTALS
+# =========================================
+
+@matches_bp.route("/matches/highest-team-totals")
+def highest_team_totals():
+
+    # ====================================
+    # QUERY PARAMS
+    # ====================================
+
+    season = request.args.get(
+
+        "season",
+
+        type=int
+    )
+
+    team = request.args.get("team")
+
+    if team:
+
+        team = normalize_team_name(team)
+
+    # ====================================
+    # BASE QUERY
+    # ====================================
+
+    query = """
+
+        SELECT
+
+            d.match_id,
+
+            m.season,
+
+            d.batting_team,
+
+            m.venue,
+
+            m.city,
+
+            d.innings,
+
+            SUM(d.total_run) AS total_runs
+
+        FROM deliveries d
+
+        JOIN matches m
+
+        ON d.match_id = m.match_id
+
+        WHERE 1=1
+
+    """
+
+    values = []
+
+    # ====================================
+    # TEAM FILTER
+    # ====================================
+
+    if team:
+
+        query += """
+
+            AND d.batting_team = %s
+
+        """
+
+        values.append(team)
+
+    # ====================================
+    # SEASON FILTER
+    # ====================================
+
+    if season:
+
+        query += """
+
+            AND m.season = %s
+
+        """
+
+        values.append(season)
+
+    # ====================================
+    # GROUPING
+    # ====================================
+
+    query += """
+
+        GROUP BY
+
+            d.match_id,
+            m.season,
+            d.batting_team,
+            m.venue,
+            m.city,
+            d.innings
+
+    """
+
+    # ====================================
+    # ORDERING
+    # ====================================
+
+    query += """
+
+        ORDER BY
+
+            total_runs DESC
+
+        LIMIT 10
+
+    """
+
+    rows = execute_query(
+
+        query,
+
+        tuple(values)
+    )
+
+    # ====================================
+    # NO DATA
+    # ====================================
+
+    if not rows:
+
+        return {
+
+            "message": "No data found"
+        }
+
+    # ====================================
+    # RESPONSE
+    # ====================================
+
+    totals = []
+
+    for row in rows:
+
+        totals.append({
+
+            "match_id": row[0],
+
+            "season": row[1],
+
+            "team": normalize_team_name(
+                row[2]
+            ),
+
+            "venue": row[3],
+
+            "city": row[4],
+
+            "innings": row[5],
+
+            "total_runs": row[6]
+        })
+
+    return {
+
+        "count": len(totals),
+
+        "highest_team_totals": totals
+    }
+
+# =========================================
+# LOWEST DEFENDED SCORES
+# =========================================
+
+@matches_bp.route("/matches/lowest-defended-scores")
+def lowest_defended_scores():
+
+    # ====================================
+    # QUERY PARAMS
+    # ====================================
+
+    season = request.args.get(
+
+        "season",
+
+        type=int
+    )
+
+    team = request.args.get("team")
+
+    if team:
+
+        team = normalize_team_name(team)
+
+    # ====================================
+    # BASE QUERY
+    # ====================================
+
+    query = """
+
+        SELECT
+
+            d.match_id,
+
+            m.season,
+
+            d.batting_team AS defending_team,
+
+            CASE
+
+                WHEN d.batting_team = m.team1
+                THEN m.team2
+
+                ELSE m.team1
+
+            END AS chasing_team,
+
+            m.venue,
+
+            m.city,
+
+            SUM(d.total_run) AS defended_score,
+
+            m.winner,
+
+            m.result_margin
+
+        FROM deliveries d
+
+        JOIN matches m
+
+        ON d.match_id = m.match_id
+
+        WHERE
+
+            d.innings = 1
+
+            AND m.result_type = 'runs'
+
+            AND m.winner = d.batting_team
+
+    """
+
+    values = []
+
+    # ====================================
+    # TEAM FILTER
+    # ====================================
+
+    if team:
+
+        query += """
+
+            AND d.batting_team = %s
+
+        """
+
+        values.append(team)
+
+    # ====================================
+    # SEASON FILTER
+    # ====================================
+
+    if season:
+
+        query += """
+
+            AND m.season = %s
+
+        """
+
+        values.append(season)
+
+    # ====================================
+    # GROUPING
+    # ====================================
+
+    query += """
+
+        GROUP BY
+
+            d.match_id,
+            m.season,
+            d.batting_team,
+            m.team1,
+            m.team2,
+            m.venue,
+            m.city,
+            m.winner,
+            m.result_margin
+
+    """
+
+    # ====================================
+    # ORDERING
+    # ====================================
+
+    query += """
+
+        ORDER BY
+
+            defended_score ASC,
+
+            result_margin ASC
+
+        LIMIT 10
+
+    """
+
+    rows = execute_query(
+
+        query,
+
+        tuple(values)
+    )
+
+    # ====================================
+    # NO DATA
+    # ====================================
+
+    if not rows:
+
+        return {
+
+            "message": "No data found"
+        }
+
+    # ====================================
+    # RESPONSE
+    # ====================================
+
+    scores = []
+
+    for row in rows:
+
+        scores.append({
+
+            "match_id": row[0],
+
+            "season": row[1],
+
+            "defending_team": normalize_team_name(
+                row[2]
+            ),
+
+            "chasing_team": normalize_team_name(
+                row[3]
+            ),
+
+            "venue": row[4],
+
+            "city": row[5],
+
+            "defended_score": row[6],
+
+            "winner": normalize_team_name(
+                row[7]
+            ),
+
+            "win_margin_runs": row[8]
+        })
+
+    return {
+
+        "count": len(scores),
+
+        "lowest_defended_scores": scores
+    }
+
+# =========================================
+# LOWEST TEAM TOTALS
+# =========================================
+
+@matches_bp.route("/matches/lowest-team-totals")
+def lowest_team_totals():
+
+    # ====================================
+    # QUERY PARAMS
+    # ====================================
+
+    season = request.args.get(
+
+        "season",
+
+        type=int
+    )
+
+    team = request.args.get("team")
+
+    if team:
+
+        team = normalize_team_name(team)
+
+    # ====================================
+    # BASE QUERY
+    # ====================================
+
+    query = """
+
+        SELECT
+
+            d.match_id,
+
+            m.season,
+
+            d.batting_team,
+
+            m.venue,
+
+            m.city,
+
+            d.innings,
+
+            SUM(d.total_run) AS total_runs,
+
+            m.winner
+
+        FROM deliveries d
+
+        JOIN matches m
+
+        ON d.match_id = m.match_id
+
+        WHERE d.innings IN (1, 2)
+
+    """
+
+    values = []
+
+    # ====================================
+    # TEAM FILTER
+    # ====================================
+
+    if team:
+
+        query += """
+
+            AND d.batting_team = %s
+
+        """
+
+        values.append(team)
+
+    # ====================================
+    # SEASON FILTER
+    # ====================================
+
+    if season:
+
+        query += """
+
+            AND m.season = %s
+
+        """
+
+        values.append(season)
+
+    # ====================================
+    # GROUPING
+    # ====================================
+
+    query += """
+
+        GROUP BY
+
+            d.match_id,
+            m.season,
+            d.batting_team,
+            m.venue,
+            m.city,
+            d.innings,
+            m.winner
+
+    """
+
+    # ====================================
+    # ORDERING
+    # ====================================
+
+    query += """
+
+        ORDER BY
+
+            total_runs ASC
+
+        LIMIT 10
+
+    """
+
+    rows = execute_query(
+
+        query,
+
+        tuple(values)
+    )
+
+    # ====================================
+    # NO DATA
+    # ====================================
+
+    if not rows:
+
+        return {
+
+            "message": "No data found"
+        }
+
+    # ====================================
+    # RESPONSE
+    # ====================================
+
+    totals = []
+
+    for row in rows:
+
+        totals.append({
+
+            "match_id": row[0],
+
+            "season": row[1],
+
+            "team": normalize_team_name(
+                row[2]
+            ),
+
+            "venue": row[3],
+
+            "city": row[4],
+
+            "innings": row[5],
+
+            "total_runs": row[6],
+
+            "winner": normalize_team_name(
+                row[7]
+            )
+        })
+
+    return {
+
+        "count": len(totals),
+
+        "lowest_team_totals": totals
+    }
+
+# =========================================
+# CLOSEST FINISHES
+# =========================================
+
+@matches_bp.route("/matches/closest-finishes")
+def closest_finishes():
+
+    # ====================================
+    # QUERY PARAMS
+    # ====================================
+
+    season = request.args.get(
+
+        "season",
+
+        type=int
+    )
+
+    # ====================================
+    # BASE QUERY
+    # ====================================
+
+    query = """
+
+        SELECT
+
+            match_id,
+
+            season,
+
+            team1,
+
+            team2,
+
+            winner,
+
+            venue,
+
+            city,
+
+            result_type,
+
+            result_margin,
+
+            super_over,
+
+            match_date
+
+        FROM matches
+
+        WHERE
+
+            (
+
+                (result_type = 'runs'
+
+                 AND result_margin <= 5)
+
+                OR
+
+                (result_type = 'wickets'
+
+                 AND result_margin <= 2)
+
+                OR
+
+                super_over = TRUE
+
+            )
+
+    """
+
+    values = []
+
+    # ====================================
+    # SEASON FILTER
+    # ====================================
+
+    if season:
+
+        query += """
+
+            AND season = %s
+
+        """
+
+        values.append(season)
+
+    # ====================================
+    # ORDERING
+    # ====================================
+
+    query += """
+
+        ORDER BY
+
+            result_margin ASC,
+
+            match_date DESC
+
+        LIMIT 20
+
+    """
+
+    rows = execute_query(
+
+        query,
+
+        tuple(values)
+    )
+
+    # ====================================
+    # NO DATA
+    # ====================================
+
+    if not rows:
+
+        return {
+
+            "message": "No data found"
+        }
+
+    # ====================================
+    # RESPONSE
+    # ====================================
+
+    matches = []
+
+    for row in rows:
+
+        matches.append({
+
+            "match_id": row[0],
+
+            "season": row[1],
+
+            "team1": normalize_team_name(
+                row[2]
+            ),
+
+            "team2": normalize_team_name(
+                row[3]
+            ),
+
+            "winner": normalize_team_name(
+                row[4]
+            ),
+
+            "venue": row[5],
+
+            "city": row[6],
+
+            "result_type": row[7],
+
+            "result_margin": row[8],
+
+            "super_over": row[9],
+
+            "match_date": str(row[10])
+        })
+
+    return {
+
+        "count": len(matches),
+
+        "closest_finishes": matches
+    }
+
+# =========================================
+# SUPER OVER MATCHES
+# =========================================
+
+@matches_bp.route("/matches/super-over-matches")
+def super_over_matches():
+
+    # ====================================
+    # QUERY PARAMS
+    # ====================================
+
+    season = request.args.get(
+
+        "season",
+
+        type=int
+    )
+
+    team = request.args.get("team")
+
+    if team:
+
+        team = normalize_team_name(team)
+
+    # ====================================
+    # BASE QUERY
+    # ====================================
+
+    query = """
+
+        SELECT
+
+            match_id,
+
+            season,
+
+            team1,
+
+            team2,
+
+            winner,
+
+            venue,
+
+            city,
+
+            result_type,
+
+            result_margin,
+
+            match_date
+
+        FROM matches
+
+        WHERE super_over = TRUE
+
+    """
+
+    values = []
+
+    # ====================================
+    # TEAM FILTER
+    # ====================================
+
+    if team:
+
+        query += """
+
+            AND (
+
+                team1 = %s
+
+                OR
+
+                team2 = %s
+
+            )
+
+        """
+
+        values.extend([
+
+            team,
+            team
+        ])
+
+    # ====================================
+    # SEASON FILTER
+    # ====================================
+
+    if season:
+
+        query += """
+
+            AND season = %s
+
+        """
+
+        values.append(season)
+
+    # ====================================
+    # ORDERING
+    # ====================================
+
+    query += """
+
+        ORDER BY
+
+            match_date DESC
+
+    """
+
+    rows = execute_query(
+
+        query,
+
+        tuple(values)
+    )
+
+    # ====================================
+    # NO DATA
+    # ====================================
+
+    if not rows:
+
+        return {
+
+            "message": "No data found"
+        }
+
+    # ====================================
+    # RESPONSE
+    # ====================================
+
+    matches = []
+
+    for row in rows:
+
+        matches.append({
+
+            "match_id": row[0],
+
+            "season": row[1],
+
+            "team1": normalize_team_name(
+                row[2]
+            ),
+
+            "team2": normalize_team_name(
+                row[3]
+            ),
+
+            "winner": normalize_team_name(
+                row[4]
+            ),
+
+            "venue": row[5],
+
+            "city": row[6],
+
+            "result_type": row[7],
+
+            "result_margin": row[8],
+
+            "match_date": str(row[9])
+        })
+
+    return {
+
+        "count": len(matches),
+
+        "super_over_matches": matches
+    }
+
+# =========================================
+# HIGHEST SUCCESSFUL CHASES
+# =========================================
+
+@matches_bp.route("/matches/highest-successful-chases")
+def highest_successful_chases():
+
+    season = request.args.get(
+
+        "season",
+
+        type=int
+    )
+
+    team = request.args.get("team")
+
+    query = """
+
+        WITH innings_totals AS (
+
+            SELECT
+
+                d.match_id,
+
+                d.innings,
+
+                d.batting_team,
+
+                SUM(d.total_run) AS total_runs,
+
+                COUNT(
+
+                    DISTINCT CASE
+
+                        WHEN w.player_out IS NOT NULL
+                        THEN w.player_out
+
+                    END
+
+                ) AS wickets_lost
+
+            FROM deliveries d
+
+            LEFT JOIN wickets w
+
+            ON d.delivery_key = w.delivery_key
+
+            WHERE d.innings IN (1, 2)
+
+            GROUP BY
+
+                d.match_id,
+                d.innings,
+                d.batting_team
+
+        )
+
+        SELECT
+
+            m.match_id,
+
+            m.season,
+
+            i2.batting_team,
+
+            i1.total_runs + 1 AS target,
+
+            i2.total_runs AS chased_score,
+
+            10 - i2.wickets_lost AS wickets_left,
+
+            m.venue,
+
+            m.city,
+
+            m.match_date,
+
+            m.winner
+
+        FROM innings_totals i1
+
+        JOIN innings_totals i2
+
+        ON i1.match_id = i2.match_id
+
+        JOIN matches m
+
+        ON m.match_id = i1.match_id
+
+        WHERE
+
+            i1.innings = 1
+
+            AND i2.innings = 2
+
+            AND i2.total_runs >= i1.total_runs + 1
+
+            AND m.winner = i2.batting_team
+
+    """
+
+    values = []
+
+    # =====================================
+    # OPTIONAL FILTERS
+    # =====================================
+
+    if season:
+
+        query += """
+
+            AND m.season = %s
+
+        """
+
+        values.append(season)
+
+    if team:
+
+        query += """
+
+            AND i2.batting_team = %s
+
+        """
+
+        values.append(team)
+
+    # =====================================
+    # ORDERING
+    # =====================================
+
+    query += """
+
+        ORDER BY
+
+            chased_score DESC,
+
+            wickets_left DESC
+
+        LIMIT 10
+
+    """
+
+    rows = execute_query(
+
+        query,
+
+        tuple(values)
+    )
+
+    # =====================================
+    # NO DATA
+    # =====================================
+
+    if not rows:
+
+        return {
+
+            "message": "No data found"
+        }
+
+    # =====================================
+    # RESPONSE
+    # =====================================
+
+    chases = []
+
+    for row in rows:
+
+        chases.append({
+
+            "match_id": row[0],
+
+            "season": row[1],
+
+            "team": row[2],
+
+            "target": row[3],
+
+            "chased_score": row[4],
+
+            "wickets_left": row[5],
+
+            "venue": row[6],
+
+            "city": row[7],
+
+            "match_date": str(row[8]),
+
+            "winner": row[9]
+        })
+
+    return {
+
+        "count": len(chases),
+
+        "highest_successful_chases": chases
     }

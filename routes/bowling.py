@@ -5,11 +5,26 @@ from database.database import get_connection
 
 
 # =========================================
+# INVALID DISMISSALS
+# =========================================
+
+INVALID_DISMISSALS = (
+
+    'run out',
+    'retired hurt',
+    'retired out',
+    'obstructing the field'
+)
+
+
+# =========================================
 # BLUEPRINT
 # =========================================
 
 bowling_bp = Blueprint(
+
     "bowling",
+
     __name__
 )
 
@@ -39,6 +54,7 @@ def execute_query(query, values=None):
 
     return rows
 
+
 # =========================================
 # MOST WICKETS
 # =========================================
@@ -46,27 +62,21 @@ def execute_query(query, values=None):
 @bowling_bp.route("/bowling/most-wickets")
 def most_wickets():
 
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
     player = request.args.get("player")
 
     season = request.args.get(
+
         "season",
+
         type=int
     )
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
         SELECT
             d.bowler,
 
-            COUNT(*) AS wickets
+            COUNT(w.player_out) AS wickets
 
         FROM wickets w
 
@@ -78,22 +88,11 @@ def most_wickets():
 
         ON d.match_id = m.match_id
 
-        WHERE w.dismissal_kind NOT IN (
-
-            'run out',
-            'retired hurt',
-            'retired out',
-            'obstructing the field'
-
-        )
+        WHERE w.dismissal_kind NOT IN %s
 
     """
 
-    values = []
-
-    # ====================================
-    # FILTERS
-    # ====================================
+    values = [INVALID_DISMISSALS]
 
     if player:
 
@@ -115,10 +114,6 @@ def most_wickets():
 
         values.append(season)
 
-    # ====================================
-    # FINAL QUERY
-    # ====================================
-
     query += """
 
         GROUP BY d.bowler
@@ -136,20 +131,12 @@ def most_wickets():
         tuple(values)
     )
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
         return {
 
             "message": "No data found"
         }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     bowlers = []
 
@@ -177,20 +164,14 @@ def most_wickets():
 @bowling_bp.route("/bowling/economy")
 def economy():
 
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
     player = request.args.get("player")
 
     season = request.args.get(
+
         "season",
+
         type=int
     )
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -226,10 +207,6 @@ def economy():
 
     values = []
 
-    # ====================================
-    # FILTERS
-    # ====================================
-
     if player:
 
         query += """
@@ -250,21 +227,12 @@ def economy():
 
         values.append(season)
 
-    # ====================================
-    # GROUPING
-    # ====================================
-
     query += """
 
         GROUP BY d.bowler
 
     """
 
-    # ====================================
-    # SMART HAVING
-    # ====================================
-
-    # Overall leaderboard
     if not player and not season:
 
         query += """
@@ -273,7 +241,6 @@ def economy():
 
         """
 
-    # Season leaderboard
     elif season:
 
         query += """
@@ -281,10 +248,6 @@ def economy():
             HAVING COUNT(*) >= 60
 
         """
-
-    # ====================================
-    # ORDERING
-    # ====================================
 
     query += """
 
@@ -301,20 +264,12 @@ def economy():
         tuple(values)
     )
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
         return {
 
             "message": "No data found"
         }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     bowlers = []
 
@@ -338,6 +293,7 @@ def economy():
         "players": bowlers
     }
 
+
 # =========================================
 # BOWLING STRIKE RATE
 # =========================================
@@ -345,20 +301,14 @@ def economy():
 @bowling_bp.route("/bowling/strike-rate")
 def bowling_strike_rate():
 
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
     player = request.args.get("player")
 
     season = request.args.get(
+
         "season",
+
         type=int
     )
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -390,6 +340,8 @@ def bowling_strike_rate():
 
         ON d.delivery_key = w.delivery_key
 
+        AND w.dismissal_kind NOT IN %s
+
         JOIN matches m
 
         ON d.match_id = m.match_id
@@ -398,11 +350,7 @@ def bowling_strike_rate():
 
     """
 
-    values = []
-
-    # ====================================
-    # FILTERS
-    # ====================================
+    values = [INVALID_DISMISSALS]
 
     if player:
 
@@ -424,21 +372,12 @@ def bowling_strike_rate():
 
         values.append(season)
 
-    # ====================================
-    # GROUPING
-    # ====================================
-
     query += """
 
         GROUP BY d.bowler
 
     """
 
-    # ====================================
-    # SMART HAVING
-    # ====================================
-
-    # Overall leaderboard
     if not player and not season:
 
         query += """
@@ -449,7 +388,6 @@ def bowling_strike_rate():
 
         """
 
-    # Season leaderboard
     elif season:
 
         query += """
@@ -459,10 +397,6 @@ def bowling_strike_rate():
                 AND COUNT(w.player_out) > 0
 
         """
-
-    # ====================================
-    # ORDERING
-    # ====================================
 
     query += """
 
@@ -479,20 +413,12 @@ def bowling_strike_rate():
         tuple(values)
     )
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
         return {
 
             "message": "No data found"
         }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     bowlers = []
 
@@ -516,6 +442,7 @@ def bowling_strike_rate():
         "players": bowlers
     }
 
+
 # =========================================
 # BOWLING AVERAGE
 # =========================================
@@ -523,20 +450,14 @@ def bowling_strike_rate():
 @bowling_bp.route("/bowling/average")
 def bowling_average():
 
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
     player = request.args.get("player")
 
     season = request.args.get(
+
         "season",
+
         type=int
     )
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -568,6 +489,8 @@ def bowling_average():
 
         ON d.delivery_key = w.delivery_key
 
+        AND w.dismissal_kind NOT IN %s
+
         JOIN matches m
 
         ON d.match_id = m.match_id
@@ -576,11 +499,7 @@ def bowling_average():
 
     """
 
-    values = []
-
-    # ====================================
-    # FILTERS
-    # ====================================
+    values = [INVALID_DISMISSALS]
 
     if player:
 
@@ -602,21 +521,12 @@ def bowling_average():
 
         values.append(season)
 
-    # ====================================
-    # GROUPING
-    # ====================================
-
     query += """
 
         GROUP BY d.bowler
 
     """
 
-    # ====================================
-    # SMART HAVING
-    # ====================================
-
-    # Overall leaderboard
     if not player and not season:
 
         query += """
@@ -627,7 +537,6 @@ def bowling_average():
 
         """
 
-    # Season leaderboard
     elif season:
 
         query += """
@@ -637,10 +546,6 @@ def bowling_average():
                 AND COUNT(w.player_out) > 0
 
         """
-
-    # ====================================
-    # ORDERING
-    # ====================================
 
     query += """
 
@@ -657,20 +562,12 @@ def bowling_average():
         tuple(values)
     )
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
         return {
 
             "message": "No data found"
         }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     bowlers = []
 
@@ -693,6 +590,8 @@ def bowling_average():
 
         "players": bowlers
     }
+
+
 # =========================================
 # BEST BOWLING FIGURES
 # =========================================
@@ -700,20 +599,14 @@ def bowling_average():
 @bowling_bp.route("/bowling/best-figures")
 def best_figures():
 
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
     player = request.args.get("player")
 
     season = request.args.get(
+
         "season",
+
         type=int
     )
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -734,6 +627,8 @@ def best_figures():
 
         ON d.delivery_key = w.delivery_key
 
+        AND w.dismissal_kind NOT IN %s
+
         JOIN matches m
 
         ON d.match_id = m.match_id
@@ -742,11 +637,7 @@ def best_figures():
 
     """
 
-    values = []
-
-    # ====================================
-    # FILTERS
-    # ====================================
+    values = [INVALID_DISMISSALS]
 
     if player:
 
@@ -768,10 +659,6 @@ def best_figures():
 
         values.append(season)
 
-    # ====================================
-    # GROUPING
-    # ====================================
-
     query += """
 
         GROUP BY
@@ -779,27 +666,12 @@ def best_figures():
             d.match_id,
             m.season
 
-    """
-
-    # ====================================
-    # ONLY REAL WICKET SPELLS
-    # ====================================
-
-    query += """
-
         HAVING COUNT(w.player_out) > 0
-
-    """
-
-    # ====================================
-    # ORDERING
-    # ====================================
-
-    query += """
 
         ORDER BY
             wickets DESC,
-            runs_conceded ASC
+            runs_conceded ASC,
+            d.match_id ASC
 
         LIMIT 10
 
@@ -812,20 +684,12 @@ def best_figures():
         tuple(values)
     )
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
         return {
 
             "message": "No data found"
         }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     figures = []
 
@@ -853,6 +717,7 @@ def best_figures():
         "best_figures": figures
     }
 
+
 # =========================================
 # PURPLE CAP
 # =========================================
@@ -860,18 +725,12 @@ def best_figures():
 @bowling_bp.route("/bowling/purple-cap")
 def purple_cap():
 
-    # ====================================
-    # QUERY PARAM
-    # ====================================
-
     season = request.args.get(
+
         "season",
+
         type=int
     )
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -890,15 +749,11 @@ def purple_cap():
 
         ON d.match_id = m.match_id
 
-        WHERE 1=1
+        WHERE w.dismissal_kind NOT IN %s
 
     """
 
-    values = []
-
-    # ====================================
-    # SEASON FILTER
-    # ====================================
+    values = [INVALID_DISMISSALS]
 
     if season:
 
@@ -910,21 +765,9 @@ def purple_cap():
 
         values.append(season)
 
-    # ====================================
-    # GROUPING
-    # ====================================
-
     query += """
 
         GROUP BY d.bowler
-
-    """
-
-    # ====================================
-    # ORDERING
-    # ====================================
-
-    query += """
 
         ORDER BY wickets DESC
 
@@ -939,10 +782,6 @@ def purple_cap():
         tuple(values)
     )
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
         return {
@@ -951,10 +790,6 @@ def purple_cap():
         }
 
     row = rows[0]
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     response = {
 
@@ -969,16 +804,13 @@ def purple_cap():
 
     return response
 
+
 # =========================================
 # PURPLE CAP BY SEASON
 # =========================================
 
 @bowling_bp.route("/bowling/purple-cap-by-season")
 def purple_cap_by_season():
-
-    # ====================================
-    # SQL QUERY
-    # ====================================
 
     query = """
 
@@ -989,7 +821,24 @@ def purple_cap_by_season():
 
                 d.bowler,
 
-                COUNT(w.player_out) AS wickets
+                COUNT(
+
+                    CASE
+
+                        WHEN w.dismissal_kind NOT IN (
+
+                            'run out',
+                            'retired hurt',
+                            'retired out',
+                            'obstructing the field'
+
+                        )
+
+                        THEN w.player_out
+
+                    END
+
+                ) AS wickets
 
             FROM deliveries d
 
@@ -1043,20 +892,12 @@ def purple_cap_by_season():
 
     rows = execute_query(query)
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
         return {
 
             "message": "No data found"
         }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     results = []
 

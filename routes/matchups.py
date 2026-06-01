@@ -2,6 +2,20 @@ from flask import Blueprint
 from flask import request
 
 from database.database import get_connection
+from utils.team_name_normalization import normalize_team_name
+
+
+# =========================================
+# INVALID DISMISSALS
+# =========================================
+
+INVALID_DISMISSALS = (
+
+    'run out',
+    'retired hurt',
+    'retired out',
+    'obstructing the field'
+)
 
 
 # =========================================
@@ -49,10 +63,6 @@ def execute_query(query, values=None):
 @matchups_bp.route("/matchups/batter-vs-bowler")
 def batter_vs_bowler():
 
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
     batter = request.args.get("batter")
 
     bowler = request.args.get("bowler")
@@ -64,20 +74,12 @@ def batter_vs_bowler():
         type=int
     )
 
-    # ====================================
-    # VALIDATION
-    # ====================================
-
     if not batter or not bowler:
 
         return {
 
             "error": "batter and bowler are required"
         }, 400
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -142,6 +144,8 @@ def batter_vs_bowler():
 
         ON d.delivery_key = w.delivery_key
 
+        AND w.dismissal_kind NOT IN %s
+
         JOIN matches m
 
         ON d.match_id = m.match_id
@@ -156,14 +160,12 @@ def batter_vs_bowler():
 
     values = [
 
+        INVALID_DISMISSALS,
+
         batter,
 
         bowler
     ]
-
-    # ====================================
-    # OPTIONAL SEASON FILTER
-    # ====================================
 
     if season:
 
@@ -174,10 +176,6 @@ def batter_vs_bowler():
         """
 
         values.append(season)
-
-    # ====================================
-    # GROUPING
-    # ====================================
 
     query += """
 
@@ -195,10 +193,6 @@ def batter_vs_bowler():
         tuple(values)
     )
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
         return {
@@ -207,10 +201,6 @@ def batter_vs_bowler():
         }
 
     row = rows[0]
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     response = {
 
@@ -237,6 +227,7 @@ def batter_vs_bowler():
 
     return response
 
+
 # =========================================
 # BATTER VS TEAM
 # =========================================
@@ -244,13 +235,13 @@ def batter_vs_bowler():
 @matchups_bp.route("/matchups/batter-vs-team")
 def batter_vs_team():
 
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
     batter = request.args.get("batter")
 
     team = request.args.get("team")
+
+    if team:
+
+        team = normalize_team_name(team)
 
     season = request.args.get(
 
@@ -259,20 +250,12 @@ def batter_vs_team():
         type=int
     )
 
-    # ====================================
-    # VALIDATION
-    # ====================================
-
     if not batter or not team:
 
         return {
 
             "error": "batter and team are required"
         }, 400
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -354,6 +337,8 @@ def batter_vs_team():
 
         ON d.delivery_key = w.delivery_key
 
+        AND w.dismissal_kind NOT IN %s
+
         JOIN matches m
 
         ON d.match_id = m.match_id
@@ -368,14 +353,12 @@ def batter_vs_team():
 
     values = [
 
+        INVALID_DISMISSALS,
+
         batter,
 
         team
     ]
-
-    # ====================================
-    # OPTIONAL SEASON FILTER
-    # ====================================
 
     if season:
 
@@ -386,10 +369,6 @@ def batter_vs_team():
         """
 
         values.append(season)
-
-    # ====================================
-    # GROUPING
-    # ====================================
 
     query += """
 
@@ -407,10 +386,6 @@ def batter_vs_team():
         tuple(values)
     )
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
         return {
@@ -419,10 +394,6 @@ def batter_vs_team():
         }
 
     row = rows[0]
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     response = {
 
@@ -458,6 +429,7 @@ def batter_vs_team():
 
     return response
 
+
 # =========================================
 # BOWLER VS TEAM
 # =========================================
@@ -465,13 +437,13 @@ def batter_vs_team():
 @matchups_bp.route("/matchups/bowler-vs-team")
 def bowler_vs_team():
 
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
     bowler = request.args.get("bowler")
 
     team = request.args.get("team")
+
+    if team:
+
+        team = normalize_team_name(team)
 
     season = request.args.get(
 
@@ -480,20 +452,12 @@ def bowler_vs_team():
         type=int
     )
 
-    # ====================================
-    # VALIDATION
-    # ====================================
-
     if not bowler or not team:
 
         return {
 
             "error": "bowler and team are required"
         }, 400
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -564,6 +528,8 @@ def bowler_vs_team():
 
         ON d.delivery_key = w.delivery_key
 
+        AND w.dismissal_kind NOT IN %s
+
         JOIN matches m
 
         ON d.match_id = m.match_id
@@ -578,14 +544,12 @@ def bowler_vs_team():
 
     values = [
 
+        INVALID_DISMISSALS,
+
         bowler,
 
         team
     ]
-
-    # ====================================
-    # OPTIONAL SEASON FILTER
-    # ====================================
 
     if season:
 
@@ -596,10 +560,6 @@ def bowler_vs_team():
         """
 
         values.append(season)
-
-    # ====================================
-    # GROUPING
-    # ====================================
 
     query += """
 
@@ -617,10 +577,6 @@ def bowler_vs_team():
         tuple(values)
     )
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
         return {
@@ -629,10 +585,6 @@ def bowler_vs_team():
         }
 
     row = rows[0]
-
-    # ====================================
-    # RESPONSE
-    # ====================================
 
     response = {
 
@@ -672,1677 +624,3 @@ def bowler_vs_team():
         response["season"] = season
 
     return response
-
-# =========================================
-# DEATH OVER SPECIALISTS
-# =========================================
-
-@matchups_bp.route("/matchups/death-over-specialists")
-def death_over_specialists():
-
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    player = request.args.get("player")
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
-
-    query = """
-
-        SELECT
-
-            d.bowler,
-
-            COUNT(*) AS balls,
-
-            SUM(d.total_run) AS runs_conceded,
-
-            COUNT(w.player_out) AS wickets,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.is_dot_ball = TRUE
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS dot_balls,
-
-            ROUND(
-
-                (
-                    SUM(d.total_run) * 6.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS economy,
-
-            ROUND(
-
-                (
-                    SUM(
-
-                        CASE
-
-                            WHEN d.is_dot_ball = TRUE
-                            THEN 1
-
-                            ELSE 0
-
-                        END
-
-                    ) * 100.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS dot_ball_percentage
-
-        FROM deliveries d
-
-        LEFT JOIN wickets w
-
-        ON d.delivery_key = w.delivery_key
-
-        JOIN matches m
-
-        ON d.match_id = m.match_id
-
-        WHERE d.phase = 'death'
-
-    """
-
-    values = []
-
-    # ====================================
-    # OPTIONAL FILTERS
-    # ====================================
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    if player:
-
-        query += """
-
-            AND d.bowler = %s
-
-        """
-
-        values.append(player)
-
-    # ====================================
-    # GROUPING
-    # ====================================
-
-    query += """
-
-        GROUP BY d.bowler
-
-    """
-
-    # ====================================
-    # SMART HAVING
-    # ====================================
-
-    if not player and not season:
-
-        query += """
-
-            HAVING COUNT(*) >= 200
-
-        """
-
-    elif season:
-
-        query += """
-
-            HAVING COUNT(*) >= 60
-
-        """
-
-    # ====================================
-    # ORDERING
-    # ====================================
-
-    query += """
-
-        ORDER BY
-
-            economy ASC,
-
-            wickets DESC
-
-        LIMIT 10
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    # ====================================
-    # NO DATA
-    # ====================================
-
-    if not rows:
-
-        return {
-
-            "message": "No data found"
-        }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
-
-    bowlers = []
-
-    for row in rows:
-
-        bowlers.append({
-
-            "player": row[0],
-
-            "balls": row[1],
-
-            "runs_conceded": row[2],
-
-            "wickets": row[3],
-
-            "dot_balls": row[4],
-
-            "economy": float(row[5]),
-
-            "dot_ball_percentage": float(row[6])
-        })
-
-    return {
-
-        "count": len(bowlers),
-
-        "specialists": bowlers
-    }
-
-# =========================================
-# POWERPLAY HITTERS
-# =========================================
-
-@matchups_bp.route("/matchups/powerplay-hitters")
-def powerplay_hitters():
-
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    player = request.args.get("player")
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
-
-    query = """
-
-        SELECT
-
-            d.batter,
-
-            COUNT(*) AS balls,
-
-            SUM(d.batsman_run) AS runs,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.batsman_run = 4
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS fours,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.batsman_run = 6
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS sixes,
-
-            ROUND(
-
-                (
-                    SUM(d.batsman_run) * 100.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS strike_rate,
-
-            ROUND(
-
-                (
-                    SUM(
-
-                        CASE
-
-                            WHEN d.batsman_run IN (4, 6)
-                            THEN 1
-
-                            ELSE 0
-
-                        END
-
-                    ) * 100.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS boundary_percentage
-
-        FROM deliveries d
-
-        JOIN matches m
-
-        ON d.match_id = m.match_id
-
-        WHERE d.phase = 'powerplay'
-
-    """
-
-    values = []
-
-    # ====================================
-    # OPTIONAL FILTERS
-    # ====================================
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    if player:
-
-        query += """
-
-            AND d.batter = %s
-
-        """
-
-        values.append(player)
-
-    # ====================================
-    # GROUPING
-    # ====================================
-
-    query += """
-
-        GROUP BY d.batter
-
-    """
-
-    # ====================================
-    # SMART HAVING
-    # ====================================
-
-    if not player and not season:
-
-        query += """
-
-            HAVING COUNT(*) >= 300
-
-        """
-
-    elif season:
-
-        query += """
-
-            HAVING COUNT(*) >= 60
-
-        """
-
-    # ====================================
-    # ORDERING
-    # ====================================
-
-    query += """
-
-        ORDER BY
-
-            strike_rate DESC,
-
-            runs DESC
-
-        LIMIT 10
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    # ====================================
-    # NO DATA
-    # ====================================
-
-    if not rows:
-
-        return {
-
-            "message": "No data found"
-        }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
-
-    batters = []
-
-    for row in rows:
-
-        batters.append({
-
-            "player": row[0],
-
-            "balls": row[1],
-
-            "runs": row[2],
-
-            "fours": row[3],
-
-            "sixes": row[4],
-
-            "strike_rate": float(row[5]),
-
-            "boundary_percentage": float(row[6])
-        })
-
-    return {
-
-        "count": len(batters),
-
-        "powerplay_hitters": batters
-    }
-
-# =========================================
-# BEST FINISHERS
-# =========================================
-
-@matchups_bp.route("/matchups/best-finishers")
-def best_finishers():
-
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    player = request.args.get("player")
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
-
-    query = """
-
-        SELECT
-
-            d.batter,
-
-            COUNT(*) AS balls,
-
-            SUM(d.batsman_run) AS runs,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.batsman_run = 4
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS fours,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.batsman_run = 6
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS sixes,
-
-            ROUND(
-
-                (
-                    SUM(d.batsman_run) * 100.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS strike_rate,
-
-            ROUND(
-
-                (
-                    SUM(
-
-                        CASE
-
-                            WHEN d.batsman_run IN (4, 6)
-                            THEN 1
-
-                            ELSE 0
-
-                        END
-
-                    ) * 100.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS boundary_percentage
-
-        FROM deliveries d
-
-        JOIN matches m
-
-        ON d.match_id = m.match_id
-
-        WHERE d.phase = 'death'
-
-    """
-
-    values = []
-
-    # ====================================
-    # OPTIONAL FILTERS
-    # ====================================
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    if player:
-
-        query += """
-
-            AND d.batter = %s
-
-        """
-
-        values.append(player)
-
-    # ====================================
-    # GROUPING
-    # ====================================
-
-    query += """
-
-        GROUP BY d.batter
-
-    """
-
-    # ====================================
-    # SMART HAVING
-    # ====================================
-
-    if not player and not season:
-
-        query += """
-
-            HAVING COUNT(*) >= 200
-
-        """
-
-    elif season:
-
-        query += """
-
-            HAVING COUNT(*) >= 40
-
-        """
-
-    # ====================================
-    # ORDERING
-    # ====================================
-
-    query += """
-
-        ORDER BY
-
-            strike_rate DESC,
-
-            sixes DESC,
-
-            runs DESC
-
-        LIMIT 10
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    # ====================================
-    # NO DATA
-    # ====================================
-
-    if not rows:
-
-        return {
-
-            "message": "No data found"
-        }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
-
-    batters = []
-
-    for row in rows:
-
-        batters.append({
-
-            "player": row[0],
-
-            "balls": row[1],
-
-            "runs": row[2],
-
-            "fours": row[3],
-
-            "sixes": row[4],
-
-            "strike_rate": float(row[5]),
-
-            "boundary_percentage": float(row[6])
-        })
-
-    return {
-
-        "count": len(batters),
-
-        "best_finishers": batters
-    }
-
-# =========================================
-# DOT BALL SPECIALISTS
-# =========================================
-
-@matchups_bp.route("/matchups/dot-ball-specialists")
-def dot_ball_specialists():
-
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    player = request.args.get("player")
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
-
-    query = """
-
-        SELECT
-
-            d.bowler,
-
-            COUNT(*) AS balls,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.is_dot_ball = TRUE
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS dot_balls,
-
-            ROUND(
-
-                (
-                    SUM(
-
-                        CASE
-
-                            WHEN d.is_dot_ball = TRUE
-                            THEN 1
-
-                            ELSE 0
-
-                        END
-
-                    ) * 100.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS dot_ball_percentage,
-
-            COUNT(w.player_out) AS wickets,
-
-            ROUND(
-
-                (
-                    SUM(d.total_run) * 6.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS economy
-
-        FROM deliveries d
-
-        LEFT JOIN wickets w
-
-        ON d.delivery_key = w.delivery_key
-
-        JOIN matches m
-
-        ON d.match_id = m.match_id
-
-        WHERE 1=1
-
-    """
-
-    values = []
-
-    # ====================================
-    # OPTIONAL FILTERS
-    # ====================================
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    if player:
-
-        query += """
-
-            AND d.bowler = %s
-
-        """
-
-        values.append(player)
-
-    # ====================================
-    # GROUPING
-    # ====================================
-
-    query += """
-
-        GROUP BY d.bowler
-
-    """
-
-    # ====================================
-    # SMART HAVING
-    # ====================================
-
-    if not player and not season:
-
-        query += """
-
-            HAVING COUNT(*) >= 300
-
-        """
-
-    elif season:
-
-        query += """
-
-            HAVING COUNT(*) >= 60
-
-        """
-
-    # ====================================
-    # ORDERING
-    # ====================================
-
-    query += """
-
-        ORDER BY
-
-            dot_ball_percentage DESC,
-
-            wickets DESC
-
-        LIMIT 10
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    # ====================================
-    # NO DATA
-    # ====================================
-
-    if not rows:
-
-        return {
-
-            "message": "No data found"
-        }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
-
-    bowlers = []
-
-    for row in rows:
-
-        bowlers.append({
-
-            "player": row[0],
-
-            "balls": row[1],
-
-            "dot_balls": row[2],
-
-            "dot_ball_percentage": float(row[3]),
-
-            "wickets": row[4],
-
-            "economy": float(row[5])
-        })
-
-    return {
-
-        "count": len(bowlers),
-
-        "specialists": bowlers
-    }
-
-# =========================================
-# MIDDLE OVER ANCHORS
-# =========================================
-
-@matchups_bp.route("/matchups/middle-over-anchors")
-def middle_over_anchors():
-
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    player = request.args.get("player")
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
-
-    query = """
-
-        SELECT
-
-            d.batter,
-
-            COUNT(*) AS balls,
-
-            SUM(d.batsman_run) AS runs,
-
-            COUNT(w.player_out) AS dismissals,
-
-            ROUND(
-
-                (
-                    SUM(d.batsman_run) * 100.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS strike_rate,
-
-            ROUND(
-
-                (
-                    SUM(d.batsman_run) * 1.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(w.player_out),
-                    0
-                ),
-
-                2
-
-            ) AS batting_average,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.batsman_run IN (4, 6)
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS boundaries,
-
-            ROUND(
-
-                (
-                    SUM(
-
-                        CASE
-
-                            WHEN d.batsman_run IN (4, 6)
-                            THEN 1
-
-                            ELSE 0
-
-                        END
-
-                    ) * 100.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS boundary_percentage
-
-        FROM deliveries d
-
-        LEFT JOIN wickets w
-
-        ON d.delivery_key = w.delivery_key
-
-        JOIN matches m
-
-        ON d.match_id = m.match_id
-
-        WHERE d.phase = 'middle'
-
-    """
-
-    values = []
-
-    # ====================================
-    # OPTIONAL FILTERS
-    # ====================================
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    if player:
-
-        query += """
-
-            AND d.batter = %s
-
-        """
-
-        values.append(player)
-
-    # ====================================
-    # GROUPING
-    # ====================================
-
-    query += """
-
-        GROUP BY d.batter
-
-    """
-
-    # ====================================
-    # SMART HAVING
-    # ====================================
-
-    if not player and not season:
-
-        query += """
-
-            HAVING COUNT(*) >= 300
-
-        """
-
-    elif season:
-
-        query += """
-
-            HAVING COUNT(*) >= 80
-
-        """
-
-    # ====================================
-    # ORDERING
-    # ====================================
-
-    query += """
-
-        ORDER BY
-
-            batting_average DESC,
-
-            strike_rate DESC
-
-        LIMIT 10
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    # ====================================
-    # NO DATA
-    # ====================================
-
-    if not rows:
-
-        return {
-
-            "message": "No data found"
-        }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
-
-    batters = []
-
-    for row in rows:
-
-        batters.append({
-
-            "player": row[0],
-
-            "balls": row[1],
-
-            "runs": row[2],
-
-            "dismissals": row[3],
-
-            "strike_rate": float(row[4]),
-
-            "batting_average": (
-
-                float(row[5])
-
-                if row[5] is not None
-
-                else None
-            ),
-
-            "boundaries": row[6],
-
-            "boundary_percentage": float(row[7])
-        })
-
-    return {
-
-        "count": len(batters),
-
-        "anchors": batters
-    }
-
-# =========================================
-# CHASING SPECIALISTS
-# =========================================
-
-@matchups_bp.route("/matchups/chasing-specialists")
-def chasing_specialists():
-
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    player = request.args.get("player")
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
-
-    query = """
-
-        SELECT
-
-            d.batter,
-
-            COUNT(*) AS balls,
-
-            SUM(d.batsman_run) AS runs,
-
-            COUNT(w.player_out) AS dismissals,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.batsman_run = 4
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS fours,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.batsman_run = 6
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS sixes,
-
-            ROUND(
-
-                (
-                    SUM(d.batsman_run) * 100.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS strike_rate,
-
-            ROUND(
-
-                (
-                    SUM(d.batsman_run) * 1.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(w.player_out),
-                    0
-                ),
-
-                2
-
-            ) AS batting_average
-
-        FROM deliveries d
-
-        LEFT JOIN wickets w
-
-        ON d.delivery_key = w.delivery_key
-
-        JOIN matches m
-
-        ON d.match_id = m.match_id
-
-        WHERE d.innings = 2
-
-    """
-
-    values = []
-
-    # ====================================
-    # OPTIONAL FILTERS
-    # ====================================
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    if player:
-
-        query += """
-
-            AND d.batter = %s
-
-        """
-
-        values.append(player)
-
-    # ====================================
-    # GROUPING
-    # ====================================
-
-    query += """
-
-        GROUP BY d.batter
-
-    """
-
-    # ====================================
-    # SMART HAVING
-    # ====================================
-
-    if not player and not season:
-
-        query += """
-
-            HAVING COUNT(*) >= 300
-
-        """
-
-    elif season:
-
-        query += """
-
-            HAVING COUNT(*) >= 60
-
-        """
-
-    # ====================================
-    # ORDERING
-    # ====================================
-
-    query += """
-
-        ORDER BY
-
-            batting_average DESC,
-
-            strike_rate DESC,
-
-            runs DESC
-
-        LIMIT 10
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    # ====================================
-    # NO DATA
-    # ====================================
-
-    if not rows:
-
-        return {
-
-            "message": "No data found"
-        }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
-
-    batters = []
-
-    for row in rows:
-
-        batters.append({
-
-            "player": row[0],
-
-            "balls": row[1],
-
-            "runs": row[2],
-
-            "dismissals": row[3],
-
-            "fours": row[4],
-
-            "sixes": row[5],
-
-            "strike_rate": float(row[6]),
-
-            "batting_average": (
-
-                float(row[7])
-
-                if row[7] is not None
-
-                else None
-            )
-        })
-
-    return {
-
-        "count": len(batters),
-
-        "chasing_specialists": batters
-    }
-
-# =========================================
-# CLUTCH PERFORMERS
-# =========================================
-
-@matchups_bp.route("/matchups/clutch-performers")
-def clutch_performers():
-
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    player = request.args.get("player")
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
-
-    query = """
-
-        SELECT
-
-            d.batter,
-
-            COUNT(*) AS balls,
-
-            SUM(d.batsman_run) AS runs,
-
-            COUNT(w.player_out) AS dismissals,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.batsman_run = 4
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS fours,
-
-            SUM(
-
-                CASE
-
-                    WHEN d.batsman_run = 6
-                    THEN 1
-
-                    ELSE 0
-
-                END
-
-            ) AS sixes,
-
-            ROUND(
-
-                (
-                    SUM(d.batsman_run) * 100.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(*),
-                    0
-                ),
-
-                2
-
-            ) AS strike_rate,
-
-            ROUND(
-
-                (
-                    SUM(d.batsman_run) * 1.0
-                )
-
-                /
-
-                NULLIF(
-                    COUNT(w.player_out),
-                    0
-                ),
-
-                2
-
-            ) AS batting_average
-
-        FROM deliveries d
-
-        LEFT JOIN wickets w
-
-        ON d.delivery_key = w.delivery_key
-
-        JOIN matches m
-
-        ON d.match_id = m.match_id
-
-        WHERE m.is_playoff = TRUE
-
-    """
-
-    values = []
-
-    # ====================================
-    # OPTIONAL FILTERS
-    # ====================================
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    if player:
-
-        query += """
-
-            AND d.batter = %s
-
-        """
-
-        values.append(player)
-
-    # ====================================
-    # GROUPING
-    # ====================================
-
-    query += """
-
-        GROUP BY d.batter
-
-    """
-
-    # ====================================
-    # SMART HAVING
-    # ====================================
-
-    if not player and not season:
-
-        query += """
-
-            HAVING COUNT(*) >= 100
-
-        """
-
-    elif season:
-
-        query += """
-
-            HAVING COUNT(*) >= 20
-
-        """
-
-    # ====================================
-    # ORDERING
-    # ====================================
-
-    query += """
-
-        ORDER BY
-
-            batting_average DESC,
-
-            strike_rate DESC,
-
-            runs DESC
-
-        LIMIT 10
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    # ====================================
-    # NO DATA
-    # ====================================
-
-    if not rows:
-
-        return {
-
-            "message": "No data found"
-        }
-
-    # ====================================
-    # RESPONSE
-    # ====================================
-
-    batters = []
-
-    for row in rows:
-
-        batters.append({
-
-            "player": row[0],
-
-            "balls": row[1],
-
-            "runs": row[2],
-
-            "dismissals": row[3],
-
-            "fours": row[4],
-
-            "sixes": row[5],
-
-            "strike_rate": float(row[6]),
-
-            "batting_average": (
-
-                float(row[7])
-
-                if row[7] is not None
-
-                else None
-            )
-        })
-
-    return {
-
-        "count": len(batters),
-
-        "clutch_performers": batters
-    }
