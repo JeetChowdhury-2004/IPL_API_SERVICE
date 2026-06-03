@@ -32,7 +32,6 @@ from utils.team_name_normalization import (
     normalize_team_name
 )
 
-
 # =========================================
 # BLUEPRINT
 # =========================================
@@ -43,7 +42,6 @@ matches_bp = Blueprint(
 
     __name__
 )
-
 
 # =========================================
 # DATABASE HELPER
@@ -69,7 +67,6 @@ def execute_query(query, values=None):
     conn.close()
 
     return rows
-
 
 # =========================================
 # ALL MATCHES
@@ -191,7 +188,6 @@ def all_matches():
         "matches": matches_list
     }
 
-
 # =========================================
 # MATCHES BY SEASON
 # =========================================
@@ -288,7 +284,6 @@ def get_match_by_season(season):
 
         "matches": matches_list
     }
-
 
 # =========================================
 # FILTER MATCHES
@@ -420,7 +415,6 @@ def filter_matches():
 
         "matches": matches
     }
-
 
 # =========================================
 # HEAD TO HEAD
@@ -566,7 +560,6 @@ def head_to_head():
         "matches": matches
     }
 
-
 # =========================================
 # ALL TITLE WINNERS
 # =========================================
@@ -611,7 +604,6 @@ def get_all_title_winners():
 
         "teams": teams
     }
-
 
 # =========================================
 # TITLE COUNTS
@@ -662,7 +654,6 @@ def title_counts():
 
         "title_counts": teams
     }
-
 
 # =========================================
 # MOST SUCCESSFUL TEAM
@@ -750,7 +741,6 @@ def most_successful_team():
             2
         )
     }
-
 
 # =========================================
 # ALL UNIQUE IPL TEAMS
@@ -2053,3 +2043,4 @@ def highest_successful_chases():
 
         "highest_successful_chases": chases
     }
+
