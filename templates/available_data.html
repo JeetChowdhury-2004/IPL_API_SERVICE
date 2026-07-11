@@ -17,7 +17,10 @@ Available IPL Data
 
 {% macro data_dropdown(title, items) %}
 
-<details class="data-section">
+<details
+    class="data-section"
+    data-available-section
+>
 
     <summary class="data-section-top">
 
@@ -45,11 +48,33 @@ Available IPL Data
 
     </summary>
 
+    <div class="data-search">
+
+        <i class="bi bi-search"></i>
+
+        <input
+            type="search"
+            class="data-search-input"
+            placeholder="Search {{ title | lower }}..."
+            aria-label="Search {{ title | lower }}"
+        >
+
+        <span class="data-search-count">
+
+            {{ items | length }} / {{ items | length }}
+
+        </span>
+
+    </div>
+
     <div class="data-grid">
 
         {% for item in items %}
 
-        <div class="data-pill">
+        <div
+            class="data-pill"
+            data-value="{{ item | lower }}"
+        >
 
             {{ item }}
 
@@ -126,5 +151,13 @@ Available IPL Data
 {{ data_dropdown("Bowlers", bowlers) }}
 
 </section>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script
+    src="{{ url_for('static', filename='js/available_data.js') }}">
+</script>
 
 {% endblock %}
