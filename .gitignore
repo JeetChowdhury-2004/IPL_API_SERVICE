@@ -28,3 +28,5 @@ raw_data/
 
 # Logs
 *.log
+
+temp_api_test.py
