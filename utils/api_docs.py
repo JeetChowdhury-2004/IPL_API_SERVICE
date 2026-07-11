@@ -2,6 +2,9 @@
 # IPL API DOCUMENTATION METADATA
 # =========================================
 
+from copy import deepcopy
+from urllib.parse import urlencode
+
 SEASONS = list(range(2008, 2027))
 
 API_DOCS = {
@@ -745,7 +748,7 @@ API_DOCS = {
         {
             "id": "matches-by-season",
             "title": "Matches By Season",
-            "route": "/matches/season/<int:season>",
+            "route": "/matches/season/{season}",
             "method": "GET",
             "description": "Returns matches by season.",
             "query_params": [
@@ -753,6 +756,8 @@ API_DOCS = {
                     "name": "season",
                     "type": "integer",
                     "required": True,
+                    "location": "path",
+                    "example": 2024,
                     "allowed_values": SEASONS
                 }
             ]
@@ -988,3 +993,90 @@ API_DOCS = {
         }
     ]
 }
+
+
+EXAMPLE_VALUES = {
+    "batter": "V Kohli",
+    "bowler": "RA Jadeja",
+    "city": "Mumbai",
+    "limit": 10,
+    "player": "V Kohli",
+    "player_name": "pandya",
+    "role": "all",
+    "season": 2024,
+    "team": "Mumbai Indians",
+    "team1": "Mumbai Indians",
+    "team2": "Chennai Super Kings",
+    "team_name": "delhi",
+    "venue_name": "Wankhede Stadium",
+    "winner": "Mumbai Indians"
+}
+
+
+def example_for_param(param):
+    if "example" in param:
+        return param["example"]
+
+    name = param["name"]
+
+    if name in EXAMPLE_VALUES:
+        return EXAMPLE_VALUES[name]
+
+    allowed_values = param.get("allowed_values")
+
+    if allowed_values:
+        return allowed_values[-1]
+
+    return None
+
+
+def apply_path_param(route, name, value):
+    replacements = (
+        f"{{{name}}}",
+        f"<{name}>",
+        f"<int:{name}>",
+        f"<string:{name}>"
+    )
+
+    for placeholder in replacements:
+        route = route.replace(placeholder, str(value))
+
+    return route
+
+
+def build_example_request(api):
+    route = api["route"]
+    query_values = {}
+
+    for param in api.get("query_params", []):
+        value = example_for_param(param)
+
+        if value is None:
+            continue
+
+        param["example"] = value
+
+        if param.get("location") == "path":
+            route = apply_path_param(route, param["name"], value)
+            continue
+
+        if param.get("required"):
+            query_values[param["name"]] = value
+
+    if query_values:
+        route = f"{route}?{urlencode(query_values)}"
+
+    return route
+
+
+def enrich_api_docs(api_docs):
+    enriched_docs = deepcopy(api_docs)
+
+    for apis in enriched_docs.values():
+        for api in apis:
+            api["example_request"] = build_example_request(api)
+
+    return enriched_docs
+
+
+API_DOCS = enrich_api_docs(API_DOCS)

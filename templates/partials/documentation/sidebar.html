@@ -59,7 +59,7 @@
                 <button
                     class="sidebar-btn"
                     data-bs-toggle="collapse"
-                    data-bs-target="#{{ category }}"
+                    data-bs-target="#sidebar-{{ category }}"
                 >
 
                     <!-- LEFT -->
@@ -86,7 +86,7 @@
 
                 <div
                     class="collapse show"
-                    id="{{ category }}"
+                    id="sidebar-{{ category }}"
                 >
 
                     {% for api in apis %}

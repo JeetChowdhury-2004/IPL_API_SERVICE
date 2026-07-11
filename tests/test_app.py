@@ -3,6 +3,7 @@ import routes.players as players_module
 import routes.teams as teams_module
 import routes.seasons as seasons_module
 import routes.venues as venues_module
+from utils.api_docs import API_DOCS
 
 
 def make_client():
@@ -32,6 +33,18 @@ def test_api_docs_endpoint():
     assert payload["success"] is True
     assert "batting" in payload["data"]
     assert "bowling" in payload["data"]
+
+
+def test_documentation_page_renders():
+    client = make_client()
+
+    response = client.get("/documentation")
+
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert "IPL API Documentation" in html
+    assert "/seasons/{season}/summary" in html
+    assert "id=\"sidebar-seasons\"" in html
 
 
 def test_unknown_api_route_returns_json_404():
@@ -365,3 +378,18 @@ def test_public_json_apis_use_standard_response_shape():
         assert response.status_code == 200
         payload = response.get_json()
         assert set(("success", "message", "data")).issubset(payload)
+
+
+def test_documented_example_requests_are_valid():
+    client = make_client()
+
+    for category, apis in API_DOCS.items():
+        for api in apis:
+            response = client.get(api["example_request"])
+
+            assert response.status_code < 400, (
+                category,
+                api["id"],
+                api["example_request"],
+                response.status_code
+            )
