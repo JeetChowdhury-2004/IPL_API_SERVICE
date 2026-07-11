@@ -4,7 +4,7 @@ IPL API Service is a Flask and PostgreSQL application that exposes Indian Premie
 
 ## Features
 
-- REST APIs for IPL batting, bowling, match, team, player, and matchup statistics.
+- REST APIs for IPL batting, bowling, match, team, player, season, venue, and matchup statistics.
 - PostgreSQL-backed storage for matches, ball-by-ball deliveries, and wickets.
 - ETL script for downloading and loading the latest IPL JSON data from Cricsheet.
 - Interactive documentation page at `/documentation`.
@@ -71,8 +71,10 @@ Open `http://127.0.0.1:5000`.
 Use a real `SECRET_KEY`, keep `FLASK_ENV=production`, and run with a WSGI server:
 
 ```bash
-gunicorn wsgi:app
+gunicorn wsgi:app --bind 0.0.0.0:$PORT
 ```
+
+The included `Procfile` uses the same command for platforms such as Render or Railway.
 
 For cross-origin browser clients, set `CORS_ORIGINS` to a comma-separated allowlist:
 
@@ -90,7 +92,11 @@ CORS_ORIGINS=https://your-frontend.example.com
 - `GET /batting/most-runs`
 - `GET /bowling/most-wickets`
 - `GET /teams/most-wins`
+- `GET /teams/search?team_name=delhi`
+- `GET /players/search?player_name=pandya`
 - `GET /players/player-summary?player=MS%20Dhoni`
+- `GET /seasons/2024/summary`
+- `GET /venues/stats?venue_name=Wankhede%20Stadium`
 
 ## Tests
 
