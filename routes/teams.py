@@ -241,10 +241,12 @@ def most_wins():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     teams = []
 
@@ -256,15 +258,15 @@ def most_wins():
                 row[0]
             ),
 
-            "wins": row[1]
+            "wins": int(row[1])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 
 
 # =========================================
@@ -458,10 +460,12 @@ def win_percentage():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     teams = []
 
@@ -473,19 +477,19 @@ def win_percentage():
                 row[0]
             ),
 
-            "matches": row[1],
+            "matches": int(row[1]),
 
-            "wins": row[2],
+            "wins": int(row[2]),
 
             "win_percentage": float(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 
 
 # =========================================
@@ -653,10 +657,12 @@ def playoff_record():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     teams = []
 
@@ -668,19 +674,19 @@ def playoff_record():
                 row[0]
             ),
 
-            "matches": row[1],
+            "matches": int(row[1]),
 
-            "wins": row[2],
+            "wins": int(row[2]),
 
             "win_percentage": float(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 
 
 # =========================================
@@ -887,10 +893,12 @@ def finals_record():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     teams = []
 
@@ -900,19 +908,19 @@ def finals_record():
 
             "team": row[0],
 
-            "finals_played": row[1],
+            "finals_played": int(row[1]),
 
-            "finals_won": row[2],
+            "finals_won": int(row[2]),
 
             "finals_win_percentage": float(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 # =========================================
 # CHASING RECORD
 # =========================================
@@ -1118,10 +1126,12 @@ def chasing_record():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
@@ -1137,21 +1147,21 @@ def chasing_record():
                 row[0]
             ),
 
-            "matches_chased": row[1],
+            "matches_chased": int(row[1]),
 
-            "successful_chases": row[2],
+            "successful_chases": int(row[2]),
 
-            "failed_chases": row[3],
+            "failed_chases": int(row[3]),
 
             "chasing_win_percentage": float(row[4])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 
 # =========================================
 # DEFENDING RECORD
@@ -1358,10 +1368,12 @@ def defending_record():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
@@ -1377,18 +1389,18 @@ def defending_record():
                 row[0]
             ),
 
-            "matches_defended": row[1],
+            "matches_defended": int(row[1]),
 
-            "successful_defends": row[2],
+            "successful_defends": int(row[2]),
 
-            "failed_defends": row[3],
+            "failed_defends": int(row[3]),
 
             "defending_win_percentage": float(row[4])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })

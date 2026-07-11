@@ -100,6 +100,29 @@ def test_player_search_validates_role():
     assert "role must be one of" in payload["message"]
 
 
+def test_player_search_uses_default_limit(monkeypatch):
+    captured_values = {}
+
+    def fake_execute_query(query, values=None):
+        captured_values["values"] = values
+        return []
+
+    monkeypatch.setattr(
+        players_module,
+        "execute_query",
+        fake_execute_query
+    )
+
+    client = make_client()
+
+    response = client.get("/players/search?player_name=pandya")
+
+    assert response.status_code == 200
+    assert captured_values["values"][-1] == (
+        players_module.DEFAULT_PLAYER_SEARCH_LIMIT
+    )
+
+
 def test_team_search_returns_exact_and_normalized_names(monkeypatch):
     def fake_execute_query(query, values=None):
         return [
@@ -145,6 +168,29 @@ def test_team_search_requires_query():
     payload = response.get_json()
     assert payload["success"] is False
     assert payload["message"] == "team_name is required"
+
+
+def test_team_search_uses_default_limit(monkeypatch):
+    captured_values = {}
+
+    def fake_execute_query(query, values=None):
+        captured_values["values"] = values
+        return []
+
+    monkeypatch.setattr(
+        teams_module,
+        "execute_query",
+        fake_execute_query
+    )
+
+    client = make_client()
+
+    response = client.get("/teams/search?team_name=delhi")
+
+    assert response.status_code == 200
+    assert captured_values["values"][-1] == (
+        teams_module.DEFAULT_TEAM_SEARCH_LIMIT
+    )
 
 
 def test_season_summary_returns_overview(monkeypatch):
@@ -275,6 +321,26 @@ def test_venue_stats_returns_overview(monkeypatch):
     assert payload["data"]["top_teams_by_matches"][0]["team"]["team"] == "Mumbai Indians"
 
 
+def test_venue_stats_returns_404_for_unknown_venue(monkeypatch):
+    def fake_execute_query(query, values=None):
+        return [(0, None, None, [], [])]
+
+    monkeypatch.setattr(
+        venues_module,
+        "execute_query",
+        fake_execute_query
+    )
+
+    client = make_client()
+
+    response = client.get("/venues/stats?venue_name=Unknown Venue")
+
+    assert response.status_code == 404
+    payload = response.get_json()
+    assert payload["success"] is False
+    assert payload["message"] == "Venue not found"
+
+
 def test_venue_stats_requires_venue_name():
     client = make_client()
 
@@ -284,3 +350,18 @@ def test_venue_stats_requires_venue_name():
     payload = response.get_json()
     assert payload["success"] is False
     assert payload["message"] == "venue_name is required"
+
+
+def test_public_json_apis_use_standard_response_shape():
+    client = make_client()
+
+    for endpoint in (
+        "/matches?limit=1",
+        "/teams/most-wins?limit=1",
+        "/batting/most-runs?limit=1"
+    ):
+        response = client.get(endpoint)
+
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert set(("success", "message", "data")).issubset(payload)
