@@ -1,13 +1,25 @@
 from flask import Blueprint
 from flask import request
 
-from utils.team_name_normalization import (
+from team_name_normalization import (
     normalize_team_name
 )
 
 from database.database import (
     get_connection
 )
+
+from utils.api_response import (
+    success_response,
+    error_response
+)
+
+from utils.pagination import get_pagination
+
+
+DEFAULT_TEAM_SEARCH_LIMIT = 10
+
+MAX_TEAM_SEARCH_LIMIT = 50
 
 
 # =========================================
@@ -46,6 +58,123 @@ def execute_query(query, values=None):
     conn.close()
 
     return rows
+
+
+# =========================================
+# TEAM SEARCH
+# =========================================
+
+@teams_bp.route("/teams/search")
+def search_teams():
+
+    team_name = request.args.get(
+
+        "team_name",
+
+        ""
+    ).strip()
+
+    limit = request.args.get(
+
+        "limit",
+
+        default=DEFAULT_TEAM_SEARCH_LIMIT,
+
+        type=int
+    )
+
+    if not team_name:
+
+        return error_response(
+
+            "team_name is required",
+
+            400
+        )
+
+    if limit is None or limit <= 0:
+
+        limit = DEFAULT_TEAM_SEARCH_LIMIT
+
+    if limit > MAX_TEAM_SEARCH_LIMIT:
+
+        limit = MAX_TEAM_SEARCH_LIMIT
+
+    search_pattern = f"%{team_name}%"
+
+    prefix_pattern = f"{team_name}%"
+
+    sql = """
+
+        WITH team_rows AS (
+
+            SELECT
+                team1 AS team,
+                match_id
+            FROM matches
+            WHERE team1 IS NOT NULL
+
+            UNION ALL
+
+            SELECT
+                team2 AS team,
+                match_id
+            FROM matches
+            WHERE team2 IS NOT NULL
+        )
+
+        SELECT
+            team,
+            COUNT(DISTINCT match_id) AS matches
+        FROM team_rows
+        WHERE team ILIKE %s
+        GROUP BY team
+        ORDER BY
+            CASE
+                WHEN LOWER(team) = LOWER(%s) THEN 0
+                WHEN team ILIKE %s THEN 1
+                ELSE 2
+            END,
+            team ASC
+        LIMIT %s
+
+    """
+
+    rows = execute_query(
+
+        sql,
+
+        (
+            search_pattern,
+            team_name,
+            prefix_pattern,
+            limit
+        )
+    )
+
+    teams = []
+
+    for row in rows:
+
+        team = row[0]
+
+        teams.append({
+
+            "team": team,
+
+            "normalized_team": normalize_team_name(team),
+
+            "matches": int(row[1])
+        })
+
+    return success_response({
+
+        "team_name": team_name,
+
+        "count": len(teams),
+
+        "teams": teams
+    })
 
 
 # =========================================
@@ -88,15 +217,20 @@ def most_wins():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY winner
 
         ORDER BY wins DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -280,6 +414,8 @@ def win_percentage():
 
         values.append(team)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY team_name
@@ -306,9 +442,12 @@ def win_percentage():
 
         ORDER BY win_percentage DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -474,6 +613,8 @@ def playoff_record():
 
         values.append(team)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY team_name
@@ -496,9 +637,12 @@ def playoff_record():
 
             wins DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -940,6 +1084,8 @@ def chasing_record():
 
         """
 
+    limit, offset = get_pagination()
+
     # ====================================
     # ORDERING
     # ====================================
@@ -952,9 +1098,12 @@ def chasing_record():
 
             successful_chases DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -1175,6 +1324,8 @@ def defending_record():
 
         """
 
+    limit, offset = get_pagination()
+
     # ====================================
     # ORDERING
     # ====================================
@@ -1187,9 +1338,12 @@ def defending_record():
 
             successful_defends DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 

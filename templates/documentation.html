@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}
+IPL API Documentation
+{% endblock %}
+
+{% block content %}
+
+<!-- ================================= -->
+<!-- SCROLL TO TOP -->
+<!-- ================================= -->
+
+<button
+    id="scrollTopBtn"
+    class="scroll-top-btn"
+>
+
+    <i class="bi bi-arrow-up"></i>
+
+</button>
+
+<!-- ================================= -->
+<!-- DOCUMENTATION LAYOUT -->
+<!-- ================================= -->
+
+<div class="documentation-layout">
+
+    <!-- ================================= -->
+    <!-- SIDEBAR -->
+    <!-- ================================= -->
+
+    {% include "partials/documentation/sidebar.html" %}
+
+    <!-- ================================= -->
+    <!-- MAIN CONTENT -->
+    <!-- ================================= -->
+
+    <main class="documentation-content">
+
+        <!-- ================================= -->
+        <!-- HERO -->
+        <!-- ================================= -->
+
+        <section class="docs-hero">
+
+            <span class="docs-badge">
+
+                IPL API PLATFORM
+
+            </span>
+
+            <h1>
+
+                IPL API Documentation
+
+            </h1>
+
+            <p>
+
+                Interactive REST APIs for IPL analytics,
+                player statistics,
+                match insights,
+                team records,
+                and cricket intelligence.
+
+            </p>
+
+        </section>
+
+        <!-- ================================= -->
+        <!-- CATEGORY LOOP -->
+        <!-- ================================= -->
+
+        {% for category, apis in api_docs.items() %}
+
+            {% if apis %}
+
+            <div
+                id="{{ category }}"
+                class="category-heading"
+                data-category="{{ category }}"
+            >
+
+                <h2>
+
+                    {{ category.title() }} APIs
+
+                </h2>
+
+            </div>
+
+            {% endif %}
+
+            <!-- ================================= -->
+            <!-- API LOOP -->
+            <!-- ================================= -->
+
+            {% for api in apis %}
+
+            <section
+                id="{{ api.id }}"
+                class="doc-section"
+                data-category="{{ category }}"
+            >
+
+                {% include "partials/documentation/api_selection.html" %}
+
+            </section>
+
+            {% endfor %}
+
+        {% endfor %}
+
+    </main>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script
+    src="{{ url_for('static', filename='js/api_tester.js') }}"
+></script>
+
+<script
+    src="{{ url_for('static', filename='js/search.js') }}"
+></script>
+
+<script
+    src="{{ url_for('static', filename='js/main.js') }}"
+></script>
+
+{% endblock %}

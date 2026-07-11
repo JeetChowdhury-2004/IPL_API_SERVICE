@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 
+
 # Python
 __pycache__/
 *.py[cod]
@@ -23,6 +24,7 @@ env/
 # Raw/generated data
 raw_data/
 *.zip
+
 
 # Logs
 *.log

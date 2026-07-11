@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}
+Available IPL Data
+{% endblock %}
+
+{% block extra_head %}
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/available_data.css') }}"
+>
+
+{% endblock %}
+
+{% block content %}
+
+{% macro data_dropdown(title, items) %}
+
+<details class="data-section">
+
+    <summary class="data-section-top">
+
+        <h2>
+
+            {{ title }}
+
+        </h2>
+
+        <div class="data-section-actions">
+
+            <span class="data-count">
+
+                {{ items | length }}
+
+            </span>
+
+            <span class="data-toggle-icon">
+
+                <i class="bi bi-chevron-down"></i>
+
+            </span>
+
+        </div>
+
+    </summary>
+
+    <div class="data-grid">
+
+        {% for item in items %}
+
+        <div class="data-pill">
+
+            {{ item }}
+
+        </div>
+
+        {% else %}
+
+        <p class="data-empty">
+
+            No values available.
+
+        </p>
+
+        {% endfor %}
+
+    </div>
+
+</details>
+
+{% endmacro %}
+
+<!-- ====================================== --><!-- AVAILABLE DATA PAGE --><!-- ====================================== --><section class="available-data-page"><!-- ================================== -->
+<!-- HERO -->
+<!-- ================================== -->
+
+<div class="available-data-hero">
+
+    <span class="available-data-badge">
+
+        IPL DATABASE VALUES
+
+    </span>
+
+    <h1>
+
+        Available IPL Data
+
+    </h1>
+
+    <p>
+
+        Use ONLY the values listed below while testing APIs.
+        These values exist in the database and ensure accurate responses.
+
+    </p>
+
+</div>
+
+{% if not database_available %}
+
+<div class="data-alert">
+
+    <strong>
+
+        Available data could not be loaded.
+
+    </strong>
+
+    <span>
+
+        {{ error_message }}
+
+    </span>
+
+</div>
+
+{% endif %}
+
+{{ data_dropdown("Teams", teams) }}
+{{ data_dropdown("Seasons", seasons) }}
+{{ data_dropdown("Cities", cities) }}
+{{ data_dropdown("Venues", venues) }}
+{{ data_dropdown("Batters", batters) }}
+{{ data_dropdown("Bowlers", bowlers) }}
+
+</section>
+
+{% endblock %}
