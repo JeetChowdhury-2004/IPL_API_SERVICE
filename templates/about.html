@@ -1,0 +1,436 @@
+{% extends "base.html" %}
+
+{% block title %}
+
+{% block extra_head %}
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/about.css') }}"
+>
+
+{% endblock %}
+
+About | IPL API Platform
+
+{% endblock %}
+
+{% block content %}
+
+
+
+<!-- ====================================== -->
+<!-- ABOUT HERO -->
+<!-- ====================================== -->
+
+<section class="about-hero">
+
+    <div class="container">
+
+        <div class="about-hero-content">
+
+            <span class="about-badge">
+
+                IPL Analytics Platform
+
+            </span>
+
+            <h1>
+
+                Built for Developers,
+                Analysts & Cricket Fans
+
+            </h1>
+
+            <p>
+
+                IPL API Platform provides structured,
+                developer-friendly cricket APIs powered
+                by detailed IPL datasets including
+                matches, players, venues, deliveries,
+                and advanced statistics.
+
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ====================================== -->
+<!-- FEATURES -->
+<!-- ====================================== -->
+
+<section class="about-section">
+
+    <div class="container">
+
+        <div class="section-heading">
+
+            <h2>
+
+                What This Platform Provides
+
+            </h2>
+
+            <p>
+
+                Powerful APIs designed for analytics,
+                dashboards, visualizations, and cricket applications.
+
+            </p>
+
+        </div>
+
+        <div class="about-grid">
+
+            <div class="about-card">
+
+                <i class="bi bi-bar-chart-line-fill"></i>
+
+                <h3>
+
+                    Match Analytics
+
+                </h3>
+
+                <p>
+
+                    Access IPL match statistics,
+                    results, win margins, toss data,
+                    and playoff insights.
+
+                </p>
+
+            </div>
+
+            <div class="about-card">
+
+                <i class="bi bi-person-fill"></i>
+
+                <h3>
+
+                    Batter Statistics
+
+                </h3>
+
+                <p>
+
+                    Analyze player runs, strike rates,
+                    boundaries, consistency, and
+                    batting performance.
+
+                </p>
+
+            </div>
+
+            <div class="about-card">
+
+                <i class="bi bi-bullseye"></i>
+
+                <h3>
+
+                    Bowler Analytics
+
+                </h3>
+
+                <p>
+
+                    Explore wickets, economy rates,
+                    bowling phases, and advanced
+                    bowling metrics.
+
+                </p>
+
+            </div>
+
+            <div class="about-card">
+
+                <i class="bi bi-building"></i>
+
+                <h3>
+
+                    Venue Insights
+
+                </h3>
+
+                <p>
+
+                    Compare IPL venues based on
+                    scoring patterns, match outcomes,
+                    and historical trends.
+
+                </p>
+
+            </div>
+
+            <div class="about-card">
+
+                <i class="bi bi-code-slash"></i>
+
+                <h3>
+
+                    API Playground
+
+                </h3>
+
+                <p>
+
+                    Test APIs directly from the browser
+                    with interactive request and response handling.
+
+                </p>
+
+            </div>
+
+            <div class="about-card">
+
+                <i class="bi bi-database-fill"></i>
+
+                <h3>
+
+                    Structured IPL Data
+
+                </h3>
+
+                <p>
+
+                    Cleaned and organized IPL datasets
+                    designed for fast querying and
+                    developer usage.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ====================================== -->
+<!-- WHY PLATFORM -->
+<!-- ====================================== -->
+
+<section class="about-section light-section">
+
+    <div class="container">
+
+        <div class="section-heading">
+
+            <h2>
+
+                Why This Platform Exists
+
+            </h2>
+
+        </div>
+
+        <div class="about-text-box">
+
+            <p>
+
+                Raw cricket datasets are often difficult
+                to query and integrate into applications.
+                IPL API Platform transforms complex IPL
+                match data into clean, accessible,
+                developer-friendly APIs.
+
+            </p>
+
+            <p>
+
+                The platform is designed for students,
+                developers, analysts, researchers,
+                and cricket enthusiasts who want
+                reliable IPL data without dealing
+                with raw datasets manually.
+
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ====================================== -->
+<!-- TECH STACK -->
+<!-- ====================================== -->
+
+<section class="about-section">
+
+    <div class="container">
+
+        <div class="section-heading">
+
+            <h2>
+
+                Technology Stack
+
+            </h2>
+
+        </div>
+
+        <div class="tech-stack">
+
+            <span>Flask</span>
+
+            <span>PostgreSQL</span>
+
+            <span>Pandas</span>
+
+            <span>REST APIs</span>
+
+            <span>Bootstrap 5</span>
+
+            <span>JavaScript</span>
+
+            <span>Python</span>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ====================================== -->
+<!-- DATASET INFO -->
+<!-- ====================================== -->
+
+<section class="about-section light-section">
+
+    <div class="container">
+
+        <div class="section-heading">
+
+            <h2>
+
+                IPL Dataset Coverage
+
+            </h2>
+
+        </div>
+
+        <div class="dataset-box">
+
+            <p>
+
+                The platform currently contains IPL
+                data from <strong>2008–2026</strong>,
+                including:
+
+            </p>
+
+            <div class="dataset-list">
+
+                <span>Teams</span>
+
+                <span>Batters</span>
+
+                <span>Bowlers</span>
+
+                <span>Venues</span>
+
+                <span>Cities</span>
+
+                <span>Match Results</span>
+
+                <span>Ball-by-Ball Data</span>
+
+                <span>Playoff Matches</span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ====================================== -->
+<!-- DEVELOPER NOTE -->
+<!-- ====================================== -->
+
+<section class="about-section">
+
+    <div class="container">
+
+        <div class="developer-note">
+
+            <div class="developer-note-icon">
+
+                <i class="bi bi-info-circle-fill"></i>
+
+            </div>
+
+            <div>
+
+                <h3>
+
+                    Developer Note
+
+                </h3>
+
+                <p>
+
+                    Many APIs require exact database-supported values.
+                    Please use the <strong>Available Data</strong>
+                    section to access valid team names,
+                    batter names, bowler names,
+                    venues, cities, and seasons.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ====================================== -->
+<!-- GITHUB CTA -->
+<!-- ====================================== -->
+
+<section class="about-github-section">
+
+    <div class="container">
+
+        <div class="github-box">
+
+            <i class="bi bi-github"></i>
+
+            <h2>
+
+                Explore The Source Code
+
+            </h2>
+
+            <p>
+
+                View the complete implementation,
+                database pipeline, and API architecture.
+
+            </p>
+
+            <a
+                href="https://github.com/JeetChowdhury-2004/IPL_API_SERVICE"
+                target="_blank"
+                class="btn custom-btn"
+            >
+
+                View GitHub Repository
+
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}

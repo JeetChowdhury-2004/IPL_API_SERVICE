@@ -1,0 +1,53 @@
+<!-- ================================= -->
+<!-- EXAMPLE RESPONSE -->
+<!-- ================================= -->
+
+<div class="api-block">
+
+    <div class="api-block-header">
+
+        Example Response
+
+    </div>
+
+    <!-- STATUS -->
+
+    {% with
+        status_text="200 OK"
+    %}
+
+        {% include "partials/components/status_badge.html" %}
+
+    {% endwith %}
+
+    <!-- RESPONSE -->
+
+    {% if api.example_response %}
+
+        {% with
+
+            code_content=
+            api.example_response | tojson(indent=4),
+
+            copy_text=
+            api.example_response | tojson(indent=4)
+
+        %}
+
+            {% include "partials/components/code_block.html" %}
+
+        {% endwith %}
+
+    {% else %}
+
+        <pre class="response-json">
+
+{
+    "message": "Example response not available"
+}
+
+        </pre>
+
+    {% endif %}
+
+</div>

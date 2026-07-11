@@ -1,0 +1,115 @@
+<aside class="sidebar">
+
+    <!-- ================================= -->
+    <!-- SIDEBAR TOP -->
+    <!-- ================================= -->
+
+    <div class="sidebar-top">
+
+        <h2 class="sidebar-logo">
+
+            <span>IPL API</span>
+
+            Playground
+
+        </h2>
+
+        <p class="sidebar-subtitle">
+
+            Interactive Cricket Analytics Platform
+
+        </p>
+
+    </div>
+
+    <!-- ================================= -->
+    <!-- SEARCH -->
+    <!-- ================================= -->
+
+    <div class="sidebar-search">
+
+        <i class="bi bi-search"></i>
+
+        <input
+            type="text"
+            id="apiSearch"
+            placeholder="Search APIs..."
+        >
+
+    </div>
+
+    <!-- ================================= -->
+    <!-- SIDEBAR NAVIGATION -->
+    <!-- ================================= -->
+
+    <div class="sidebar-links">
+
+        {% for category, apis in api_docs.items() %}
+
+            {% if apis %}
+
+            <!-- ============================= -->
+            <!-- CATEGORY -->
+            <!-- ============================= -->
+
+            <div class="sidebar-category">
+
+                <!-- CATEGORY BUTTON -->
+
+                <button
+                    class="sidebar-btn"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#{{ category }}"
+                >
+
+                    <!-- LEFT -->
+
+                    <span>
+
+                        {{ category.title() }}
+
+                    </span>
+
+                    <!-- COUNT -->
+
+                    <span class="sidebar-count">
+
+                        {{ apis | length }}
+
+                    </span>
+
+                </button>
+
+                <!-- ========================= -->
+                <!-- API LINKS -->
+                <!-- ========================= -->
+
+                <div
+                    class="collapse show"
+                    id="{{ category }}"
+                >
+
+                    {% for api in apis %}
+
+                    <a
+                        href="#{{ api.id }}"
+                        class="sidebar-link"
+                    >
+
+                        {{ api.title }}
+
+                    </a>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+        {% endfor %}
+
+    </div>
+
+</aside>

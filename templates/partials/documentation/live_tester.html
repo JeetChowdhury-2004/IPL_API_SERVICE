@@ -1,0 +1,74 @@
+<!-- ================================= -->
+<!-- LIVE API TESTER -->
+<!-- ================================= -->
+
+<div class="live-api-box">
+
+    <!-- HEADER -->
+
+    <div class="live-header">
+
+        <h5>
+
+            Live API Tester
+
+        </h5>
+
+    </div>
+
+    <!-- PARAMETERS -->
+
+    {% for param in api.query_params %}
+
+    <div class="mb-3">
+
+        <label class="form-label">
+
+            {{ param.name }}
+
+        </label>
+
+        <input
+
+            {% if param.type == "integer" %}
+
+                type="number"
+
+            {% else %}
+
+                type="text"
+
+            {% endif %}
+
+            id="{{ api.id }}-{{ param.name }}"
+
+            class="form-control"
+
+            placeholder="e.g. {{ param.example }}"
+        >
+
+    </div>
+
+    {% endfor %}
+
+    <!-- EXECUTE BUTTON -->
+
+    <button
+        class="execute-btn"
+        onclick="runAPI(
+            '{{ api.route }}',
+            '{{ api.id }}'
+        )"
+    >
+
+        <i class="bi bi-play-fill"></i>
+
+        Execute API
+
+    </button>
+
+    <!-- RESPONSE BOX -->
+
+    {% include "partials/components/response_box.html" %}
+
+</div>

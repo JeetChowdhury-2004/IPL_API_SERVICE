@@ -1,0 +1,345 @@
+/* ====================================== */
+/* HERO SECTION */
+/* ====================================== */
+
+.hero-section {
+
+    position: relative;
+
+    min-height: 100vh;
+
+    display: flex;
+
+    align-items: center;
+
+    overflow: hidden;
+
+    padding: 140px 0 100px;
+
+    background:
+
+        linear-gradient(
+
+            135deg,
+
+            #0f172a 0%,
+
+            #1e3a8a 50%,
+
+            #7c3aed 100%
+        );
+}
+
+
+/* ====================================== */
+/* HERO OVERLAY */
+/* ====================================== */
+
+.hero-overlay {
+
+    position: absolute;
+
+    inset: 0;
+
+    background:
+
+        radial-gradient(
+
+            circle at top left,
+
+            rgba(255,255,255,0.08),
+
+            transparent 30%
+        );
+
+    pointer-events: none;
+}
+
+
+/* ====================================== */
+/* HERO CONTENT */
+/* ====================================== */
+
+.hero-section .container {
+
+    position: relative;
+
+    z-index: 2;
+}
+
+
+/* ====================================== */
+/* HERO BADGE */
+/* ====================================== */
+
+.hero-badge {
+
+    display: inline-block;
+
+    padding: 10px 20px;
+
+    border-radius: 999px;
+
+    background-color: rgba(255,255,255,0.12);
+
+    color: var(--white-color);
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+    margin-bottom: 24px;
+
+    backdrop-filter: blur(10px);
+}
+
+
+/* ====================================== */
+/* HERO TITLE */
+/* ====================================== */
+
+.hero-title {
+
+    font-size: 72px;
+
+    line-height: 1.05;
+
+    font-weight: 800;
+
+    color: var(--white-color);
+
+    margin-bottom: 28px;
+
+    max-width: 750px;
+}
+
+
+/* ====================================== */
+/* HERO SUBTITLE */
+/* ====================================== */
+
+.hero-subtitle {
+
+    font-size: 20px;
+
+    line-height: 1.8;
+
+    color: rgba(255,255,255,0.82);
+
+    max-width: 700px;
+
+    margin-bottom: 40px;
+}
+
+
+/* ====================================== */
+/* HERO BUTTONS */
+/* ====================================== */
+
+.hero-buttons {
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 18px;
+
+    margin-bottom: 60px;
+}
+
+
+/* ====================================== */
+/* PRIMARY BUTTON */
+/* ====================================== */
+
+.hero-primary-btn {
+
+    background:
+
+        linear-gradient(
+
+            135deg,
+
+            var(--primary-color),
+
+            var(--secondary-color)
+        );
+
+    border: none;
+
+    color: var(--white-color);
+
+    padding: 16px 34px;
+
+    border-radius: 16px;
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+    transition: var(--transition);
+
+    box-shadow: var(--shadow-md);
+}
+
+
+.hero-primary-btn:hover {
+
+    transform: translateY(-3px);
+
+    box-shadow: var(--shadow-lg);
+
+    color: var(--white-color);
+}
+
+
+/* ====================================== */
+/* SECONDARY BUTTON */
+/* ====================================== */
+
+.hero-secondary-btn {
+
+    background-color: rgba(255,255,255,0.08);
+
+    border: 1px solid rgba(255,255,255,0.15);
+
+    color: var(--white-color);
+
+    padding: 16px 34px;
+
+    border-radius: 16px;
+
+    font-size: 16px;
+
+    font-weight: 600;
+
+    backdrop-filter: blur(10px);
+
+    transition: var(--transition);
+}
+
+
+.hero-secondary-btn:hover {
+
+    background-color: rgba(255,255,255,0.14);
+
+    color: var(--white-color);
+
+    transform: translateY(-2px);
+}
+
+
+/* ====================================== */
+/* HERO STATS */
+/* ====================================== */
+
+.hero-stats {
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 24px;
+}
+
+
+/* ====================================== */
+/* STAT BOX */
+/* ====================================== */
+
+.stat-box {
+
+    min-width: 140px;
+
+    padding: 24px;
+
+    border-radius: 22px;
+
+    background-color: rgba(255,255,255,0.08);
+
+    backdrop-filter: blur(12px);
+
+    border: 1px solid rgba(255,255,255,0.08);
+
+    transition: var(--transition);
+}
+
+
+.stat-box:hover {
+
+    transform: translateY(-5px);
+
+    background-color: rgba(255,255,255,0.12);
+}
+
+
+.stat-box h3 {
+
+    font-size: 40px;
+
+    font-weight: 800;
+
+    color: var(--white-color);
+
+    margin-bottom: 10px;
+}
+
+
+.stat-box p {
+
+    margin: 0;
+
+    color: rgba(255,255,255,0.75);
+
+    font-size: 15px;
+}
+
+
+/* ====================================== */
+/* HERO CODE CARD */
+/* ====================================== */
+
+.hero-code-card {
+
+    background-color: rgba(15,23,42,0.75);
+
+    border: 1px solid rgba(255,255,255,0.08);
+
+    border-radius: 28px;
+
+    padding: 35px;
+
+    backdrop-filter: blur(16px);
+
+    box-shadow: var(--shadow-lg);
+
+    transform: rotate(2deg);
+
+    transition: var(--transition);
+}
+
+
+.hero-code-card:hover {
+
+    transform: rotate(0deg) translateY(-5px);
+}
+
+
+/* ====================================== */
+/* CODE BLOCK */
+/* ====================================== */
+
+.hero-code-card pre {
+
+    margin: 0;
+
+    color: #e2e8f0;
+
+    font-size: 15px;
+
+    line-height: 1.8;
+
+    overflow-x: auto;
+}

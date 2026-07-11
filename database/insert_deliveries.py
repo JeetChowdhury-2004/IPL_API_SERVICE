@@ -1,53 +1,87 @@
-from database.database import get_connection
 from psycopg2.extras import execute_values
 
+from .database import get_connection
+
+# =========================================
+# INSERT DELIVERIES
+# =========================================
 
 def insert_deliveries(deliveries):
 
     """
     Batch insert deliveries into PostgreSQL.
-
-    Parameters:
-        deliveries (list): List of delivery dictionaries
     """
 
-    # Skip empty list
+    # =====================================
+    # EMPTY CHECK
+    # =====================================
+
     if not deliveries:
-        return
 
-    conn = get_connection()
-    cursor = conn.cursor()
+        return 0
 
-    query = """
-        INSERT INTO deliveries (
+    # =====================================
+    # REMOVE DUPLICATES IN MEMORY
+    # =====================================
 
-            delivery_key,
-            match_id,
-            innings,
-            over_no,
-            ball_no,
-            batter,
-            bowler,
-            non_striker,
-            batting_team,
-            bowling_team,
-            batsman_run,
-            extras_run,
-            total_run,
-            extra_type,
-            phase,
-            is_boundary,
-            is_dot_ball,
-            non_boundary,
-            is_super_over
+    unique_deliveries = {}
 
-        )
+    for d in deliveries:
 
-        VALUES %s
+        delivery_key = d.get("delivery_key")
 
-        ON CONFLICT (delivery_key)
-        DO NOTHING
-    """
+        if delivery_key:
+
+            unique_deliveries[delivery_key] = d
+
+    deliveries = list(
+
+        unique_deliveries.values()
+    )
+
+    # =====================================
+    # VALIDATE ROWS
+    # =====================================
+
+    cleaned_deliveries = []
+
+    for d in deliveries:
+
+        # REQUIRED FIELDS
+
+        if not d.get("delivery_key"):
+
+            continue
+
+        if not d.get("match_id"):
+
+            continue
+
+        if d.get("innings") is None:
+
+            continue
+
+        if d.get("over_no") is None:
+
+            continue
+
+        if d.get("ball_no") is None:
+
+            continue
+
+        cleaned_deliveries.append(d)
+
+    # =====================================
+    # NO VALID DATA
+    # =====================================
+
+    if not cleaned_deliveries:
+
+        return 0
+
+    # =====================================
+    # PREPARE VALUES
+    # =====================================
 
     values = [
 
@@ -75,10 +109,64 @@ def insert_deliveries(deliveries):
 
         )
 
-        for d in deliveries
+        for d in cleaned_deliveries
     ]
 
+    # =====================================
+    # CONNECTION
+    # =====================================
+
+    conn = None
+
+    cursor = None
+
     try:
+
+        conn = get_connection()
+
+        cursor = conn.cursor()
+
+        # =================================
+        # QUERY
+        # =================================
+
+        query = """
+
+            INSERT INTO deliveries (
+
+                delivery_key,
+                match_id,
+                innings,
+                over_no,
+                ball_no,
+                batter,
+                bowler,
+                non_striker,
+                batting_team,
+                bowling_team,
+                batsman_run,
+                extras_run,
+                total_run,
+                extra_type,
+                phase,
+                is_boundary,
+                is_dot_ball,
+                non_boundary,
+                is_super_over
+
+            )
+
+            VALUES %s
+
+            ON CONFLICT (delivery_key)
+
+            DO NOTHING
+
+        """
+
+        # =================================
+        # BATCH INSERT
+        # =================================
 
         execute_values(
 
@@ -86,25 +174,51 @@ def insert_deliveries(deliveries):
             query,
             values,
 
-            # rows per SQL statement
-            page_size=10000
+            page_size=5000
         )
 
         conn.commit()
 
         print(
-            f"Inserted {len(values)} deliveries"
+
+            f"Inserted "
+            f"{len(values)} deliveries"
         )
+
+        return len(values)
 
     except Exception as e:
 
-        conn.rollback()
+        # =================================
+        # ROLLBACK
+        # =================================
 
-        print(
-            f"Delivery batch insert failed:\n{e}"
-        )
+        if conn:
+
+            conn.rollback()
+
+        print("\n=================================")
+
+        print("DELIVERY INSERT ERROR")
+
+        print("=================================\n")
+
+        print(e)
+
+        print("\n=================================\n")
+
+        raise e
 
     finally:
 
-        cursor.close()
-        conn.close()
+        # =================================
+        # CLEANUP
+        # =================================
+
+        if cursor:
+
+            cursor.close()
+
+        if conn:
+
+            conn.close()

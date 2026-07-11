@@ -3,6 +3,7 @@ import requests
 import zipfile
 import sys
 import os
+import shutil
 
 # =========================================
 # PROJECT ROOT
@@ -11,10 +12,16 @@ import os
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 if str(PROJECT_ROOT) not in sys.path:
+
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from database.database import get_connection
+# =========================================
+# IMPORTS
+# =========================================
+
 from etl.load_matches import load_matches
+
+from etl.load_deliveries import load_deliveries
 
 # =========================================
 # URL
@@ -24,7 +31,6 @@ CRICSHEET_URL = (
 
     "https://cricsheet.org/downloads/ipl_json.zip"
 )
-
 
 # =========================================
 # PATHS
@@ -40,14 +46,41 @@ EXTRACT_PATH = (
     PROJECT_ROOT / "raw_data" / "json_matches"
 )
 
+# =========================================
+# CLEAN OLD ZIP
+# =========================================
+
+if DOWNLOAD_PATH.exists():
+
+    DOWNLOAD_PATH.unlink()
 
 # =========================================
 # DOWNLOAD ZIP
 # =========================================
 
-print("Downloading latest IPL data...")
+print("\n=========================================")
+print("DOWNLOADING LATEST IPL DATA")
+print("=========================================\n")
 
-response = requests.get(CRICSHEET_URL)
+try:
+
+    response = requests.get(
+
+        CRICSHEET_URL,
+
+        timeout=120
+    )
+
+    response.raise_for_status()
+
+except Exception as e:
+
+    print(
+
+        f"Download failed:\n{e}"
+    )
+
+    sys.exit()
 
 with open(DOWNLOAD_PATH, "wb") as f:
 
@@ -55,140 +88,155 @@ with open(DOWNLOAD_PATH, "wb") as f:
 
 print("Download completed.")
 
+# =========================================
+# CLEAN OLD JSON FOLDER
+# =========================================
+
+print("\nCleaning old extracted files...")
+
+# =========================================
+# CLEAN OLD JSON FILES
+# =========================================
+
+print("\nCleaning old extracted files...")
+
+EXTRACT_PATH.mkdir(
+
+    parents=True,
+
+    exist_ok=True
+)
+
+for file in os.listdir(EXTRACT_PATH):
+
+    file_path = EXTRACT_PATH / file
+
+    try:
+
+        if file_path.is_file():
+
+            os.remove(file_path)
+
+    except Exception as e:
+
+        print(f"Could not delete {file}: {e}")
+
+print("Old files removed.")
 
 # =========================================
 # EXTRACT ZIP
 # =========================================
 
-print("Extracting ZIP file...")
+print("\nExtracting ZIP file...")
 
-with zipfile.ZipFile(
+try:
 
-    DOWNLOAD_PATH,
+    with zipfile.ZipFile(
 
-    "r"
+        DOWNLOAD_PATH,
 
-) as zip_ref:
+        "r"
 
-    zip_ref.extractall(EXTRACT_PATH)
+    ) as zip_ref:
+
+        zip_ref.extractall(EXTRACT_PATH)
+
+except Exception as e:
+
+    print(
+
+        f"ZIP extraction failed:\n{e}"
+    )
+
+    sys.exit()
 
 print("Extraction completed.")
 
 # =========================================
-# EXISTING MATCH IDS
+# GET ALL JSON FILES
 # =========================================
 
-print("Fetching existing match IDs...")
+json_files = sorted([
 
-conn = get_connection()
+    f for f in os.listdir(EXTRACT_PATH)
 
-cursor = conn.cursor()
-
-cursor.execute("""
-
-    SELECT match_id
-
-    FROM matches
-
-""")
-
-existing_match_ids = {
-
-    row[0]
-
-    for row in cursor.fetchall()
-}
-
-cursor.close()
-
-conn.close()
-
-print(
-
-    f"Existing matches found: "
-
-    f"{len(existing_match_ids)}"
-
-)
-
-# =========================================
-# EXISTING MATCH IDS
-# =========================================
-
-print("Fetching existing match IDs...")
-
-conn = get_connection()
-
-cursor = conn.cursor()
-
-cursor.execute("""
-
-    SELECT match_id
-
-    FROM matches
-
-""")
-
-existing_match_ids = {
-
-    row[0]
-
-    for row in cursor.fetchall()
-}
-
-cursor.close()
-
-conn.close()
-
-print(
-
-    f"Existing matches found: "
-
-    f"{len(existing_match_ids)}"
-
-)
-
-
-# =========================================
-# FIND NEW MATCH FILES
-# =========================================
-
-JSON_FOLDER = (
-
-    PROJECT_ROOT / "raw_data" / "json_matches"
-)
-
-json_files = [
-
-    f for f in os.listdir(JSON_FOLDER)
-
-    if f.endswith(".json")
-]
-
-new_files = []
-
-for file in json_files:
-
-    match_id = int(
-
-        file.replace(".json", "")
+    if (
+        f.endswith(".json")
+        and
+        f.replace(".json", "").isdigit()
     )
 
-    if match_id not in existing_match_ids:
-
-        new_files.append(file)
+])
 
 print(
 
-    f"New match files found: "
-
-    f"{len(new_files)}"
-
+    f"\nJSON files found: "
+    f"{len(json_files)}"
 )
 
-# LOAD ONLY NEW MATCHES
-if new_files:
-    print("Loading new matches into database...")
-    load_matches(new_files)
-else:
-    print("Database already up to date.")
+# =========================================
+# EMPTY CHECK
+# =========================================
+
+if not json_files:
+
+    print(
+
+        "\nNo valid JSON files found."
+    )
+
+    sys.exit()
+
+# =========================================
+# LOAD MATCHES
+# =========================================
+
+print("\n=========================================")
+print("LOADING MATCHES")
+print("=========================================\n")
+
+try:
+
+    load_matches(json_files)
+
+    print("\nMatches loaded successfully.")
+
+except Exception as e:
+
+    print(
+
+        f"\nMatch loading failed:\n{e}"
+    )
+
+    sys.exit()
+
+# =========================================
+# LOAD DELIVERIES
+# =========================================
+
+print("\n=========================================")
+print("LOADING DELIVERIES")
+print("=========================================\n")
+
+try:
+
+    load_deliveries(json_files)
+
+    print("\nDeliveries loaded successfully.")
+
+except Exception as e:
+
+    print(
+
+        f"\nDelivery loading failed:\n{e}"
+    )
+
+    sys.exit()
+
+# =========================================
+# FINISHED
+# =========================================
+
+print("\n=========================================")
+print("IPL DATABASE UPDATE COMPLETED")
+print("=========================================\n")

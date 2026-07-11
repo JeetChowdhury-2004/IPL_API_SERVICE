@@ -14,9 +14,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from database.database import get_connection
-from database.insert_matches import insert_match
+# =========================================
+# IMPORTS
+# =========================================
 
+from database.database import get_connection
+
+from database.insert_matches import insert_match
 
 # =========================================
 # IPL PLAYOFF STAGE MAP
@@ -149,6 +153,24 @@ IPL_STAGE_MAP = {
     ]
 }
 
+# =========================================
+# AUTO FUTURE IPL SEASONS
+# =========================================
+
+CURRENT_YEAR = 2100
+
+for year in range(2026, CURRENT_YEAR + 1):
+
+    IPL_STAGE_MAP[str(year)] = [
+
+        "Qualifier 1",
+
+        "Eliminator",
+
+        "Qualifier 2",
+
+        "Final"
+    ]
 
 # =========================================
 # CLEAN SEASON
@@ -159,16 +181,18 @@ def clean_season(season):
     season = str(season)
 
     if season == "2007/08":
+
         return 2008
 
     if season == "2009/10":
+
         return 2010
 
     if season == "2020/21":
+
         return 2020
 
     return int(season)
-
 
 # =========================================
 # CLEAN PLAYOFF MAP
@@ -180,7 +204,6 @@ CLEAN_STAGE_MAP = {
 
     for season, stages in IPL_STAGE_MAP.items()
 }
-
 
 # =========================================
 # JSON FILE HELPER
@@ -195,7 +218,6 @@ def get_json_files(folder):
         if f.endswith(".json")
     ]
 
-
 # =========================================
 # LOAD MATCHES
 # =========================================
@@ -206,7 +228,12 @@ def load_matches(files_to_process=None):
     # FOLDER
     # =====================================
 
-    folder = PROJECT_ROOT / "raw_data" / "json_matches"
+    folder = (
+
+        PROJECT_ROOT
+        / "raw_data"
+        / "json_matches"
+    )
 
     # =====================================
     # FILES
@@ -220,7 +247,11 @@ def load_matches(files_to_process=None):
 
         files = get_json_files(folder)
 
-    print(f"Total files found: {len(files)}")
+    print(
+
+        f"Total files found: "
+        f"{len(files)}"
+    )
 
     # =====================================
     # STORE MATCHES
@@ -234,20 +265,72 @@ def load_matches(files_to_process=None):
 
     for file in files:
 
-        path = os.path.join(folder, file)
+        # =================================
+        # SAFE FILENAME CHECK
+        # =================================
 
-        with open(path, "r", encoding="utf-8") as f:
+        filename = file.replace(
+
+            ".json",
+            ""
+        )
+
+        if not filename.isdigit():
+
+            print(
+
+                f"Skipping invalid file: "
+                f"{file}"
+            )
+
+            continue
+
+        path = os.path.join(
+
+            folder,
+            file
+        )
+
+        with open(
+
+            path,
+            "r",
+            encoding="utf-8"
+
+        ) as f:
 
             data = json.load(f)
 
-        info = data.get("info", {})
+        info = data.get(
+            "info",
+            {}
+        )
 
-        teams = info.get("teams", [])
+        teams = info.get(
+            "teams",
+            []
+        )
 
-        team1 = teams[0] if len(teams) > 0 else None
-        team2 = teams[1] if len(teams) > 1 else None
+        team1 = (
+
+            teams[0]
+
+            if len(teams) > 0
+
+            else None
+        )
+
+        team2 = (
+
+            teams[1]
+
+            if len(teams) > 1
+
+            else None
+        )
 
         season = clean_season(
+
             info.get("season")
         )
 
@@ -255,38 +338,60 @@ def load_matches(files_to_process=None):
         # OUTCOME
         # =================================
 
-        outcome = info.get("outcome", {})
+        outcome = info.get(
+            "outcome",
+            {}
+        )
 
-        innings = data.get("innings", [])
+        innings = data.get(
+            "innings",
+            []
+        )
 
         # =================================
-        # DEBUG SUPER OVER MATCHES
+        # DEBUG SUPER OVER
         # =================================
 
         if len(innings) > 2:
 
             print("\n================================")
+
             print("SUPER OVER MATCH")
+
             print("FILE:", file)
+
             print("OUTCOME:")
-            print(json.dumps(outcome, indent=4))
+
+            print(
+
+                json.dumps(
+                    outcome,
+                    indent=4
+                )
+            )
+
             print("================================\n")
 
         # =================================
         # WINNER
         # =================================
 
-        winner = outcome.get("winner")
+        winner = outcome.get(
+            "winner"
+        )
 
         if winner is None:
 
-            winner = outcome.get("eliminator")
+            winner = outcome.get(
+                "eliminator"
+            )
 
         # =================================
         # RESULT INFO
         # =================================
 
         result_type = None
+
         result_margin = None
 
         if "by" in outcome:
@@ -325,33 +430,49 @@ def load_matches(files_to_process=None):
         # TOSS
         # =================================
 
-        toss = info.get("toss", {})
+        toss = info.get(
+            "toss",
+            {}
+        )
 
-        toss_winner = toss.get("winner")
+        toss_winner = toss.get(
+            "winner"
+        )
 
-        toss_decision = toss.get("decision")
+        toss_decision = toss.get(
+            "decision"
+        )
 
         # =================================
         # UMPIRES
         # =================================
 
         umpires = info.get(
+
             "officials",
             {}
+
         ).get(
+
             "umpires",
             []
         )
 
         umpire1 = (
+
             umpires[0]
+
             if len(umpires) > 0
+
             else None
         )
 
         umpire2 = (
+
             umpires[1]
+
             if len(umpires) > 1
+
             else None
         )
 
@@ -359,31 +480,48 @@ def load_matches(files_to_process=None):
         # DATES
         # =================================
 
-        dates = info.get("dates", [])
+        dates = info.get(
+            "dates",
+            []
+        )
 
         # =================================
         # TARGET INFO
         # =================================
 
         target_runs = None
+
         target_overs = None
 
         if len(innings) > 1:
 
             target_info = innings[1].get(
+
                 "target",
                 {}
             )
 
-            target_runs = target_info.get("runs")
+            target_runs = target_info.get(
+                "runs"
+            )
 
-            target_overs = target_info.get("overs")
+            target_overs = target_info.get(
+                "overs"
+            )
 
         # =================================
         # SUPER OVER FLAG
         # =================================
 
-        super_over = len(innings) > 2
+        super_over = any(
+
+            inning.get(
+                "super_over",
+                False
+            )
+
+            for inning in innings
+        )
 
         # =================================
         # MATCH ROW
@@ -391,17 +529,26 @@ def load_matches(files_to_process=None):
 
         match_row = {
 
-            "match_id": int(
-                file.replace(".json", "")
-            ),
+            "match_id": int(filename),
 
             "season": season,
 
-            "match_date": dates[0] if dates else None,
+            "match_date": (
 
-            "city": info.get("city"),
+                dates[0]
 
-            "venue": info.get("venue"),
+                if dates
+
+                else None
+            ),
+
+            "city": info.get(
+                "city"
+            ),
+
+            "venue": info.get(
+                "venue"
+            ),
 
             "team1": team1,
 
@@ -414,9 +561,13 @@ def load_matches(files_to_process=None):
             "winner": winner,
 
             "player_of_match": (
+
                 info.get(
+
                     "player_of_match",
+
                     [None]
+
                 )[0]
             ),
 
@@ -430,7 +581,6 @@ def load_matches(files_to_process=None):
 
             "super_over": super_over,
 
-            # DEFAULT VALUES
             "match_stage": "League",
 
             "is_playoff": False,
@@ -454,7 +604,10 @@ def load_matches(files_to_process=None):
 
     if df.empty:
 
-        print("No new matches found.")
+        print(
+
+            "No new matches found."
+        )
 
         return
 
@@ -463,6 +616,7 @@ def load_matches(files_to_process=None):
     # =====================================
 
     df["match_date"] = pd.to_datetime(
+
         df["match_date"]
     )
 
@@ -473,8 +627,11 @@ def load_matches(files_to_process=None):
     df = df.sort_values(
 
         by=[
+
             "season",
+
             "match_date",
+
             "match_id"
         ],
 
@@ -489,7 +646,9 @@ def load_matches(files_to_process=None):
     for season, stage_names in CLEAN_STAGE_MAP.items():
 
         season_df = df[
+
             df["season"] == season
+
         ].copy()
 
         if season_df.empty:
@@ -499,7 +658,9 @@ def load_matches(files_to_process=None):
         season_df = season_df.sort_values(
 
             by=[
+
                 "match_date",
+
                 "match_id"
             ],
 
@@ -509,19 +670,31 @@ def load_matches(files_to_process=None):
         playoff_count = len(stage_names)
 
         playoff_matches = season_df.tail(
+
             playoff_count
         )
 
         for idx, stage in zip(
 
             playoff_matches.index,
+
             stage_names
 
         ):
 
-            df.loc[idx, "match_stage"] = stage
+            df.loc[
 
-            df.loc[idx, "is_playoff"] = True
+                idx,
+                "match_stage"
+
+            ] = stage
+
+            df.loc[
+
+                idx,
+                "is_playoff"
+
+            ] = True
 
     # =====================================
     # DATABASE INSERT
@@ -530,6 +703,7 @@ def load_matches(files_to_process=None):
     conn = get_connection()
 
     success_count = 0
+
     error_count = 0
 
     for _, row in df.iterrows():
@@ -537,6 +711,7 @@ def load_matches(files_to_process=None):
         row = row.where(
 
             pd.notnull(row),
+
             None
         )
 
@@ -553,11 +728,27 @@ def load_matches(files_to_process=None):
 
         except Exception as e:
 
+            if (
+
+                "duplicate key"
+
+                in str(e).lower()
+
+            ):
+
+                continue
+
             error_count += 1
 
             print("\n=================================")
-            print("ERROR INSERTING MATCH")
-            print("=================================\n")
+
+            print(
+                "ERROR INSERTING MATCH"
+            )
+
+            print(
+                "=================================\n"
+            )
 
             print(row)
 
@@ -565,7 +756,9 @@ def load_matches(files_to_process=None):
 
             print(e)
 
-            print("\n=================================\n")
+            print(
+                "\n=================================\n"
+            )
 
     # =====================================
     # COMMIT & CLOSE
@@ -580,15 +773,30 @@ def load_matches(files_to_process=None):
     # =====================================
 
     print("\n=================================")
-    print("MATCH LOADING COMPLETED")
-    print("=================================")
 
-    print(f"Successful Inserts : {success_count}")
+    print(
+        "MATCH LOADING COMPLETED"
+    )
 
-    print(f"Failed Inserts     : {error_count}")
+    print(
+        "================================="
+    )
 
-    print("=================================\n")
+    print(
 
+        f"Successful Inserts : "
+        f"{success_count}"
+    )
+
+    print(
+
+        f"Failed Inserts     : "
+        f"{error_count}"
+    )
+
+    print(
+        "=================================\n"
+    )
 
 # =========================================
 # MAIN

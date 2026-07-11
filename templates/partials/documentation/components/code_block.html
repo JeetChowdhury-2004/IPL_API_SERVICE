@@ -1,0 +1,30 @@
+<!-- ================================= -->
+<!-- CODE BLOCK COMPONENT -->
+<!-- ================================= -->
+
+<div class="code-block">
+
+    <!-- COPY BUTTON -->
+
+    {% if copy_text %}
+
+    <div class="code-block-top">
+
+        {% with
+            copy_text=copy_text,
+            button_title="Copy Code"
+        %}
+
+            {% include "partials/components/copy_button.html" %}
+
+        {% endwith %}
+
+    </div>
+
+    {% endif %}
+
+    <!-- CODE -->
+
+<pre>{{ code_content }}</pre>
+
+</div>

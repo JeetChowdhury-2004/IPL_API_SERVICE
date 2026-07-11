@@ -1,0 +1,249 @@
+/* ====================================== */
+/* MAIN NAVBAR */
+/* ====================================== */
+
+.custom-navbar {
+
+    background-color: rgba(15, 23, 42, 0.92);
+
+    backdrop-filter: blur(12px);
+
+    padding: 18px 0;
+
+    transition: all 0.3s ease;
+
+    z-index: 1000;
+}
+
+
+/* ====================================== */
+/* NAVBAR SCROLLED */
+/* ====================================== */
+
+.navbar-scrolled {
+
+    background-color: rgba(15, 23, 42, 0.98);
+
+    box-shadow:
+        0 8px 24px rgba(0,0,0,0.22);
+
+    padding: 14px 0;
+}
+
+
+/* ====================================== */
+/* LOGO */
+/* ====================================== */
+
+.navbar-brand {
+
+    color: #ffffff !important;
+
+    font-size: 28px;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+}
+
+
+.logo-highlight {
+
+    color: #2563eb;
+}
+
+
+/* ====================================== */
+/* NAV LINKS */
+/* ====================================== */
+
+.navbar-nav {
+
+    gap: 10px;
+}
+
+
+.nav-link {
+
+    color: rgba(255,255,255,0.85) !important;
+
+    font-size: 15px;
+
+    font-weight: 500;
+
+    padding: 10px 16px !important;
+
+    border-radius: 12px;
+
+    transition: all 0.25s ease;
+}
+
+
+/* ====================================== */
+/* NAV LINK HOVER */
+/* ====================================== */
+
+.nav-link:hover {
+
+    color: #ffffff !important;
+
+    background-color: rgba(255,255,255,0.08);
+}
+
+
+/* ====================================== */
+/* ACTIVE LINK */
+/* ====================================== */
+
+.nav-link.active {
+
+    color: #60a5fa !important;
+
+    background-color: rgba(37,99,235,0.14);
+
+    font-weight: 600;
+}
+
+
+/* ====================================== */
+/* DROPDOWN MENU */
+/* ====================================== */
+
+.dropdown-menu {
+
+    background-color: #0f172a;
+
+    border: 1px solid rgba(255,255,255,0.06);
+
+    border-radius: 16px;
+
+    padding: 10px;
+
+    min-width: 220px;
+
+    margin-top: 12px;
+}
+
+
+/* ====================================== */
+/* DROPDOWN ITEM */
+/* ====================================== */
+
+.dropdown-item {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    color: rgba(255,255,255,0.82);
+
+    font-size: 14px;
+
+    font-weight: 500;
+
+    border-radius: 12px;
+
+    padding: 12px 14px;
+
+    transition: all 0.25s ease;
+}
+
+
+.dropdown-item:hover {
+
+    background-color: rgba(255,255,255,0.08);
+
+    color: #ffffff;
+}
+
+
+/* ====================================== */
+/* GITHUB LINK */
+/* ====================================== */
+
+.github-link {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+}
+
+
+/* ====================================== */
+/* COMING SOON BADGE */
+/* ====================================== */
+
+.coming-soon-badge {
+
+    margin-left: 8px;
+
+    padding: 3px 8px;
+
+    border-radius: 999px;
+
+    background-color: rgba(59,130,246,0.18);
+
+    color: #93c5fd;
+
+    font-size: 11px;
+
+    font-weight: 700;
+}
+
+
+/* ====================================== */
+/* MOBILE TOGGLER */
+/* ====================================== */
+
+.navbar-toggler {
+
+    border: none;
+
+    box-shadow: none !important;
+}
+
+
+.navbar-toggler:focus {
+
+    box-shadow: none !important;
+}
+
+
+/* ====================================== */
+/* MOBILE MENU */
+/* ====================================== */
+
+@media (max-width: 991px) {
+
+    .navbar-collapse {
+
+        background-color: rgba(15, 23, 42, 0.98);
+
+        padding: 20px;
+
+        border-radius: 20px;
+
+        margin-top: 15px;
+
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .navbar-nav {
+
+        gap: 6px;
+    }
+
+    .dropdown-menu {
+
+        margin-top: 10px;
+    }
+
+    .github-link {
+
+        justify-content: center;
+    }
+}

@@ -1,0 +1,48 @@
+<!-- ================================= -->
+<!-- ENDPOINT HEADER COMPONENT -->
+<!-- ================================= -->
+
+<div class="endpoint-header">
+
+    <div class="endpoint-left">
+
+        <!-- METHOD -->
+
+        <span class="method-badge">
+
+            {{ api.method }}
+
+        </span>
+
+        <!-- ENDPOINT -->
+
+        <h2 class="endpoint-title">
+
+            {{ api.route }}
+
+        </h2>
+
+    </div>
+
+    <!-- COPY BUTTON -->
+
+    {% with
+        copy_text=api.route,
+        button_title="Copy Endpoint"
+    %}
+
+        {% include "partials/components/copy_button.html" %}
+
+    {% endwith %}
+
+</div>
+
+<!-- ================================= -->
+<!-- DESCRIPTION -->
+<!-- ================================= -->
+
+<p class="endpoint-description">
+
+    {{ api.description }}
+
+</p>

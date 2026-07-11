@@ -1,0 +1,27 @@
+<!-- ================================= -->
+<!-- EXAMPLE REQUEST -->
+<!-- ================================= -->
+
+<div class="api-block">
+
+    <div class="api-block-header">
+
+        Example Request
+
+    </div>
+
+    {% with
+
+        code_content=
+        "GET http://127.0.0.1:5000" ~ api.example_request,
+
+        copy_text=
+        "GET http://127.0.0.1:5000" ~ api.example_request
+
+    %}
+
+        {% include "partials/components/code_block.html" %}
+
+    {% endwith %}
+
+</div>

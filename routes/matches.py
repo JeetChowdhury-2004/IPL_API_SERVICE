@@ -4,6 +4,8 @@ import sys
 from flask import Blueprint
 from flask import request
 
+from utils.pagination import get_pagination
+
 # =========================================
 # PROJECT ROOT
 # =========================================
@@ -28,7 +30,7 @@ from database.database import (
     get_connection
 )
 
-from utils.team_name_normalization import (
+from team_name_normalization import (
     normalize_team_name
 )
 
@@ -78,26 +80,7 @@ def execute_query(query, values=None):
 @matches_bp.route("/matches")
 def all_matches():
 
-    limit = request.args.get(
-
-        "limit",
-
-        default=10,
-
-        type=int
-    )
-
-    # =====================================
-    # SAFETY
-    # =====================================
-
-    if limit <= 0:
-
-        limit = 10
-
-    if limit > 100:
-
-        limit = 100
+    limit, offset = get_pagination()
 
     # =====================================
     # QUERY
@@ -126,6 +109,7 @@ def all_matches():
         ORDER BY match_date ASC
 
         LIMIT %s
+        OFFSET %s
 
     """
 
@@ -133,7 +117,7 @@ def all_matches():
 
         query,
 
-        (limit,)
+        (limit, offset)
     )
 
     matches_list = []
@@ -199,6 +183,8 @@ def all_matches():
 @matches_bp.route("/matches/season/<int:season>")
 def get_match_by_season(season):
 
+    limit, offset = get_pagination()
+
     query = """
 
         SELECT
@@ -223,13 +209,16 @@ def get_match_by_season(season):
 
         ORDER BY match_date ASC
 
+        LIMIT %s
+        OFFSET %s
+
     """
 
     rows = execute_query(
 
         query,
 
-        (season,)
+        (season, limit, offset)
     )
 
     matches_list = []
@@ -893,6 +882,8 @@ def highest_run_chases():
 
         values.append(team)
 
+    limit, offset = get_pagination()
+
     # ====================================
     # ORDERING
     # ====================================
@@ -905,7 +896,8 @@ def highest_run_chases():
 
             result_margin DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
 
@@ -913,7 +905,7 @@ def highest_run_chases():
 
         query,
 
-        tuple(values)
+        tuple(values + [limit, offset])
     )
 
     # ====================================
@@ -1055,6 +1047,18 @@ def highest_team_totals():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
+    if season:
+
+        query += """
+
+            AND m.season = %s
+
+        """
+
+        values.append(season)
+
     # ====================================
     # GROUPING
     # ====================================
@@ -1082,7 +1086,8 @@ def highest_team_totals():
 
             total_runs DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
 
@@ -1090,7 +1095,7 @@ def highest_team_totals():
 
         query,
 
-        tuple(values)
+        tuple(values + [limit, offset])
     )
 
     # ====================================
@@ -1241,6 +1246,8 @@ def lowest_defended_scores():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     # ====================================
     # GROUPING
     # ====================================
@@ -1273,7 +1280,8 @@ def lowest_defended_scores():
 
             result_margin ASC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
 
@@ -1281,7 +1289,7 @@ def lowest_defended_scores():
 
         query,
 
-        tuple(values)
+        tuple(values + [limit, offset])
     )
 
     # ====================================
@@ -1425,6 +1433,8 @@ def lowest_team_totals():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     # ====================================
     # GROUPING
     # ====================================
@@ -1453,7 +1463,8 @@ def lowest_team_totals():
 
             total_runs ASC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
 
@@ -1461,7 +1472,7 @@ def lowest_team_totals():
 
         query,
 
-        tuple(values)
+        tuple(values + [limit, offset])
     )
 
     # ====================================
@@ -1982,6 +1993,8 @@ def highest_successful_chases():
 
         values.append(team)
 
+    limit, offset = get_pagination()
+
     # =====================================
     # ORDERING
     # =====================================
@@ -1994,7 +2007,8 @@ def highest_successful_chases():
 
             wickets_left DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
 
@@ -2002,7 +2016,7 @@ def highest_successful_chases():
 
         query,
 
-        tuple(values)
+        tuple(values + [limit, offset])
     )
 
     # =====================================

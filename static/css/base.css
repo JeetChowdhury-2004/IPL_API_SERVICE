@@ -1,0 +1,216 @@
+/* ====================================== */
+/* ROOT VARIABLES */
+/* ====================================== */
+
+:root {
+
+    /* COLORS */
+
+    --primary-color: #2563eb;
+
+    --secondary-color: #7c3aed;
+
+    --dark-color: #0f172a;
+
+    --light-color: #f8fafc;
+
+    --white-color: #ffffff;
+
+    --text-color: #1e293b;
+
+    --muted-text: #64748b;
+
+    --border-color: #e2e8f0;
+
+    --success-color: #16a34a;
+
+    --danger-color: #dc2626;
+
+    /* SHADOWS */
+
+    --shadow-sm:
+
+        0 2px 8px rgba(0,0,0,0.06);
+
+    --shadow-md:
+
+        0 8px 24px rgba(0,0,0,0.08);
+
+    --shadow-lg:
+
+        0 15px 40px rgba(0,0,0,0.12);
+
+    /* BORDER RADIUS */
+
+    --radius-sm: 10px;
+
+    --radius-md: 18px;
+
+    --radius-lg: 24px;
+
+    /* TRANSITION */
+
+    --transition:
+
+        all 0.3s ease;
+}
+
+
+/* ====================================== */
+/* GLOBAL RESET */
+/* ====================================== */
+
+* {
+
+    margin: 0;
+
+    padding: 0;
+
+    box-sizing: border-box;
+}
+
+
+/* ====================================== */
+/* HTML */
+/* ====================================== */
+
+html {
+
+    scroll-behavior: smooth;
+}
+
+
+/* ====================================== */
+/* BODY */
+/* ====================================== */
+
+body {
+
+    font-family: "Inter", sans-serif;
+
+    background-color: var(--light-color);
+
+    color: var(--text-color);
+
+    overflow-x: hidden;
+
+    line-height: 1.6;
+}
+
+
+/* ====================================== */
+/* LINKS */
+/* ====================================== */
+
+a {
+
+    text-decoration: none;
+
+    transition: var(--transition);
+}
+
+
+/* ====================================== */
+/* IMAGES */
+/* ====================================== */
+
+img {
+
+    max-width: 100%;
+
+    display: block;
+}
+
+
+/* ====================================== */
+/* BUTTONS */
+/* ====================================== */
+
+button {
+
+    border: none;
+
+    outline: none;
+
+    cursor: pointer;
+
+    transition: var(--transition);
+}
+
+
+/* ====================================== */
+/* LISTS */
+/* ====================================== */
+
+ul {
+
+    list-style: none;
+
+    padding: 0;
+
+    margin: 0;
+}
+
+
+/* ====================================== */
+/* CONTAINER SPACING */
+/* ====================================== */
+
+section {
+
+    position: relative;
+}
+
+
+/* ====================================== */
+/* COMMON TITLES */
+/* ====================================== */
+
+.section-title {
+
+    font-size: 48px;
+
+    font-weight: 800;
+
+    margin-bottom: 20px;
+
+    color: var(--dark-color);
+}
+
+
+.section-subtitle {
+
+    font-size: 18px;
+
+    color: var(--muted-text);
+
+    max-width: 700px;
+
+    margin: auto;
+}
+
+
+/* ====================================== */
+/* COMMON BADGES */
+/* ====================================== */
+
+.section-badge {
+
+    display: inline-block;
+
+    padding: 8px 18px;
+
+    border-radius: 999px;
+
+    background-color: rgba(37,99,235,0.1);
+
+    color: var(--primary-color);
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+    margin-bottom: 20px;
+}
