@@ -2,8 +2,15 @@ from flask import Blueprint
 from flask import request
 
 from database.database import get_connection
-from utils.team_name_normalization import normalize_team_name
 
+from team_name_normalization import (
+    normalize_team_name
+)
+
+from utils.api_response import (
+    success_response,
+    error_response
+)
 
 # =========================================
 # INVALID DISMISSALS
@@ -17,7 +24,6 @@ INVALID_DISMISSALS = (
     'obstructing the field'
 )
 
-
 # =========================================
 # BLUEPRINT
 # =========================================
@@ -29,7 +35,6 @@ matchups_bp = Blueprint(
     __name__
 )
 
-
 # =========================================
 # DATABASE HELPER
 # =========================================
@@ -40,21 +45,24 @@ def execute_query(query, values=None):
 
     cursor = conn.cursor()
 
-    cursor.execute(
+    try:
 
-        query,
+        cursor.execute(
 
-        values if values else ()
-    )
+            query,
 
-    rows = cursor.fetchall()
+            values if values else ()
+        )
 
-    cursor.close()
+        rows = cursor.fetchall()
 
-    conn.close()
+        return rows
 
-    return rows
+    finally:
 
+        cursor.close()
+
+        conn.close()
 
 # =========================================
 # BATTER VS BOWLER
@@ -76,10 +84,12 @@ def batter_vs_bowler():
 
     if not batter or not bowler:
 
-        return {
+        return error_response(
 
-            "error": "batter and bowler are required"
-        }, 400
+            "batter and bowler are required",
+
+            400
+        )
 
     query = """
 
@@ -152,9 +162,9 @@ def batter_vs_bowler():
 
         WHERE
 
-            d.batter = %s
+            d.batter ILIKE %s
 
-            AND d.bowler = %s
+            AND d.bowler ILIKE %s
 
     """
 
@@ -195,10 +205,12 @@ def batter_vs_bowler():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No matchup data found"
-        }
+            "No matchup data found",
+
+            404
+        )
 
     row = rows[0]
 
@@ -208,25 +220,24 @@ def batter_vs_bowler():
 
         "bowler": row[1],
 
-        "balls": row[2],
+        "balls": int(row[2]),
 
-        "runs": row[3],
+        "runs": int(row[3]),
 
-        "dismissals": row[4],
+        "dismissals": int(row[4]),
 
         "strike_rate": float(row[5]),
 
-        "fours": row[6],
+        "fours": int(row[6]),
 
-        "sixes": row[7]
+        "sixes": int(row[7])
     }
 
     if season:
 
         response["season"] = season
 
-    return response
-
+    return success_response(response)
 
 # =========================================
 # BATTER VS TEAM
@@ -252,10 +263,12 @@ def batter_vs_team():
 
     if not batter or not team:
 
-        return {
+        return error_response(
 
-            "error": "batter and team are required"
-        }, 400
+            "batter and team are required",
+
+            400
+        )
 
     query = """
 
@@ -345,7 +358,7 @@ def batter_vs_team():
 
         WHERE
 
-            d.batter = %s
+            d.batter ILIKE %s
 
             AND d.bowling_team = %s
 
@@ -388,10 +401,12 @@ def batter_vs_team():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No matchup data found"
-        }
+            "No matchup data found",
+
+            404
+        )
 
     row = rows[0]
 
@@ -401,11 +416,11 @@ def batter_vs_team():
 
         "against_team": row[1],
 
-        "balls": row[2],
+        "balls": int(row[2]),
 
-        "runs": row[3],
+        "runs": int(row[3]),
 
-        "dismissals": row[4],
+        "dismissals": int(row[4]),
 
         "strike_rate": float(row[5]),
 
@@ -418,17 +433,16 @@ def batter_vs_team():
             else None
         ),
 
-        "fours": row[7],
+        "fours": int(row[7]),
 
-        "sixes": row[8]
+        "sixes": int(row[8])
     }
 
     if season:
 
         response["season"] = season
 
-    return response
-
+    return success_response(response)
 
 # =========================================
 # BOWLER VS TEAM
@@ -454,10 +468,12 @@ def bowler_vs_team():
 
     if not bowler or not team:
 
-        return {
+        return error_response(
 
-            "error": "bowler and team are required"
-        }, 400
+            "bowler and team are required",
+
+            400
+        )
 
     query = """
 
@@ -536,7 +552,7 @@ def bowler_vs_team():
 
         WHERE
 
-            d.bowler = %s
+            d.bowler ILIKE %s
 
             AND d.batting_team = %s
 
@@ -579,10 +595,12 @@ def bowler_vs_team():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No matchup data found"
-        }
+            "No matchup data found",
+
+            404
+        )
 
     row = rows[0]
 
@@ -592,11 +610,11 @@ def bowler_vs_team():
 
         "against_team": row[1],
 
-        "balls": row[2],
+        "balls": int(row[2]),
 
-        "runs_conceded": row[3],
+        "runs_conceded": int(row[3]),
 
-        "wickets": row[4],
+        "wickets": int(row[4]),
 
         "economy": float(row[5]),
 
@@ -623,4 +641,4 @@ def bowler_vs_team():
 
         response["season"] = season
 
-    return response
+    return success_response(response)

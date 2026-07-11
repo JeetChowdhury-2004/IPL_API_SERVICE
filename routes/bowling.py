@@ -3,6 +3,12 @@ from flask import request
 
 from database.database import get_connection
 
+from utils.api_response import (
+    success_response,
+    error_response
+)
+
+from utils.pagination import get_pagination
 
 # =========================================
 # INVALID DISMISSALS
@@ -16,7 +22,6 @@ INVALID_DISMISSALS = (
     'obstructing the field'
 )
 
-
 # =========================================
 # BLUEPRINT
 # =========================================
@@ -28,7 +33,6 @@ bowling_bp = Blueprint(
     __name__
 )
 
-
 # =========================================
 # DATABASE HELPER
 # =========================================
@@ -39,21 +43,24 @@ def execute_query(query, values=None):
 
     cursor = conn.cursor()
 
-    cursor.execute(
+    try:
 
-        query,
+        cursor.execute(
 
-        values if values else ()
-    )
+            query,
 
-    rows = cursor.fetchall()
+            values if values else ()
+        )
 
-    cursor.close()
+        rows = cursor.fetchall()
 
-    conn.close()
+        return rows
 
-    return rows
+    finally:
 
+        cursor.close()
+
+        conn.close()
 
 # =========================================
 # MOST WICKETS
@@ -98,7 +105,7 @@ def most_wickets():
 
         query += """
 
-            AND d.bowler = %s
+            AND d.bowler ILIKE %s
 
         """
 
@@ -114,15 +121,20 @@ def most_wickets():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY d.bowler
 
         ORDER BY wickets DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -133,10 +145,12 @@ def most_wickets():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     bowlers = []
 
@@ -146,16 +160,15 @@ def most_wickets():
 
             "player": row[0],
 
-            "wickets": row[1]
+            "wickets": int(row[1])
         })
 
-    return {
+    return success_response({
 
         "count": len(bowlers),
 
         "players": bowlers
-    }
-
+    })
 
 # =========================================
 # BOWLING ECONOMY
@@ -211,7 +224,7 @@ def economy():
 
         query += """
 
-            AND d.bowler = %s
+            AND d.bowler ILIKE %s
 
         """
 
@@ -226,6 +239,8 @@ def economy():
         """
 
         values.append(season)
+
+    limit, offset = get_pagination()
 
     query += """
 
@@ -253,9 +268,12 @@ def economy():
 
         ORDER BY economy ASC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -266,10 +284,12 @@ def economy():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     bowlers = []
 
@@ -279,20 +299,19 @@ def economy():
 
             "player": row[0],
 
-            "runs_conceded": row[1],
+            "runs_conceded": int(row[1]),
 
-            "balls_bowled": row[2],
+            "balls_bowled": int(row[2]),
 
             "economy": float(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(bowlers),
 
         "players": bowlers
-    }
-
+    })
 
 # =========================================
 # BOWLING STRIKE RATE
@@ -356,7 +375,7 @@ def bowling_strike_rate():
 
         query += """
 
-            AND d.bowler = %s
+            AND d.bowler ILIKE %s
 
         """
 
@@ -371,6 +390,8 @@ def bowling_strike_rate():
         """
 
         values.append(season)
+
+    limit, offset = get_pagination()
 
     query += """
 
@@ -402,9 +423,12 @@ def bowling_strike_rate():
 
         ORDER BY strike_rate ASC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -415,10 +439,12 @@ def bowling_strike_rate():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     bowlers = []
 
@@ -428,20 +454,19 @@ def bowling_strike_rate():
 
             "player": row[0],
 
-            "balls_bowled": row[1],
+            "balls_bowled": int(row[1]),
 
-            "wickets": row[2],
+            "wickets": int(row[2]),
 
             "strike_rate": float(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(bowlers),
 
         "players": bowlers
-    }
-
+    })
 
 # =========================================
 # BOWLING AVERAGE
@@ -505,7 +530,7 @@ def bowling_average():
 
         query += """
 
-            AND d.bowler = %s
+            AND d.bowler ILIKE %s
 
         """
 
@@ -520,6 +545,8 @@ def bowling_average():
         """
 
         values.append(season)
+
+    limit, offset = get_pagination()
 
     query += """
 
@@ -551,9 +578,12 @@ def bowling_average():
 
         ORDER BY bowling_average ASC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -564,10 +594,12 @@ def bowling_average():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     bowlers = []
 
@@ -577,20 +609,19 @@ def bowling_average():
 
             "player": row[0],
 
-            "runs_conceded": row[1],
+            "runs_conceded": int(row[1]),
 
-            "wickets": row[2],
+            "wickets": int(row[2]),
 
             "bowling_average": float(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(bowlers),
 
         "players": bowlers
-    }
-
+    })
 
 # =========================================
 # BEST BOWLING FIGURES
@@ -643,7 +674,7 @@ def best_figures():
 
         query += """
 
-            AND d.bowler = %s
+            AND d.bowler ILIKE %s
 
         """
 
@@ -659,6 +690,8 @@ def best_figures():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY
@@ -673,9 +706,12 @@ def best_figures():
             runs_conceded ASC,
             d.match_id ASC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -686,10 +722,12 @@ def best_figures():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     figures = []
 
@@ -703,20 +741,19 @@ def best_figures():
 
             "season": row[2],
 
-            "runs_conceded": row[3],
+            "runs_conceded": int(row[3]),
 
-            "wickets": row[4],
+            "wickets": int(row[4]),
 
             "figure": f"{row[4]}/{row[3]}"
         })
 
-    return {
+    return success_response({
 
         "count": len(figures),
 
         "best_figures": figures
-    }
-
+    })
 
 # =========================================
 # PURPLE CAP
@@ -784,10 +821,12 @@ def purple_cap():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     row = rows[0]
 
@@ -795,15 +834,14 @@ def purple_cap():
 
         "player": row[0],
 
-        "wickets": row[1]
+        "wickets": int(row[1])
     }
 
     if season:
 
         response["season"] = season
 
-    return response
-
+    return success_response(response)
 
 # =========================================
 # PURPLE CAP BY SEASON
@@ -888,16 +926,23 @@ def purple_cap_by_season():
 
         ORDER BY season ASC
 
+        LIMIT %s
+        OFFSET %s
+
     """
 
-    rows = execute_query(query)
+    limit, offset = get_pagination()
+
+    rows = execute_query(query, (limit, offset))
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     results = []
 
@@ -909,12 +954,12 @@ def purple_cap_by_season():
 
             "player": row[1],
 
-            "wickets": row[2]
+            "wickets": int(row[2])
         })
 
-    return {
+    return success_response({
 
         "count": len(results),
 
         "purple_caps": results
-    }
+    })

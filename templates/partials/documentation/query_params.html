@@ -1,0 +1,267 @@
+<!-- ================================= -->
+<!-- QUERY PARAMETERS -->
+<!-- ================================= -->
+
+<div class="api-block">
+
+    <!-- ================================= -->
+    <!-- BLOCK HEADER -->
+    <!-- ================================= -->
+
+    <div class="api-block-header">
+
+        Parameters
+
+    </div>
+
+    <!-- ================================= -->
+    <!-- EMPTY PARAMETERS -->
+    <!-- ================================= -->
+
+    {% if not api.query_params %}
+
+        <div class="empty-params">
+
+            No query parameters required.
+
+        </div>
+
+    {% else %}
+
+    <!-- ================================= -->
+    <!-- TABLE -->
+    <!-- ================================= -->
+
+    <div class="table-responsive">
+
+        <table class="table parameter-table">
+
+            <!-- ================================= -->
+            <!-- TABLE HEAD -->
+            <!-- ================================= -->
+
+            <thead>
+
+                <tr>
+
+                    <th>
+
+                        Parameter
+
+                    </th>
+
+                    <th>
+
+                        Type
+
+                    </th>
+
+                    <th>
+
+                        Location
+
+                    </th>
+
+                    <th>
+
+                        Required
+
+                    </th>
+
+                    <th>
+
+                        Description
+
+                    </th>
+
+                    <th>
+
+                        Example
+
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <!-- ================================= -->
+            <!-- TABLE BODY -->
+            <!-- ================================= -->
+
+            <tbody>
+
+                {% for param in api.query_params %}
+
+                <tr>
+
+                    <!-- PARAMETER -->
+
+                    <td>
+
+                        <div class="param-name-wrapper">
+
+                            <code class="param-name">
+
+                                {{ param.name }}
+
+                            </code>
+
+                        </div>
+
+                    </td>
+
+                    <!-- TYPE -->
+
+                    <td>
+
+                        <span class="param-type-badge">
+
+                            {{ param.type }}
+
+                        </span>
+
+                    </td>
+
+                    <!-- LOCATION -->
+
+                    <td>
+
+                        <span class="param-type-badge">
+
+                            {{ param.location | default("query") }}
+
+                        </span>
+
+                    </td>
+
+                    <!-- REQUIRED -->
+
+                    <td>
+
+                        {% if param.required %}
+
+                            <span class="required-badge">
+
+                                Required
+
+                            </span>
+
+                        {% else %}
+
+                            <span class="optional-badge">
+
+                                Optional
+
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <!-- DESCRIPTION -->
+
+                    <td>
+
+                        <div class="param-description">
+
+                            {{ param.description }}
+
+                        </div>
+
+                        <!-- ============================= -->
+                        <!-- ALLOWED VALUES -->
+                        <!-- ============================= -->
+
+                        {% if param.allowed_values %}
+
+                        <div class="allowed-values-box">
+
+                            <span class="allowed-title">
+
+                                Allowed Values
+
+                            </span>
+
+                            <div class="allowed-values-list">
+
+                                {% if param.allowed_values | length > 10 %}
+
+                                    <span class="allowed-pill">
+
+                                        Multiple Supported
+                                    </span>
+
+                                {% else %}
+
+                                    {% for value in param.allowed_values %}
+
+                                    <span class="allowed-pill">
+
+                                        {{ value }}
+
+                                    </span>
+
+                                    {% endfor %}
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                        {% endif %}
+
+                    </td>
+
+                    <!-- EXAMPLE -->
+
+                    <td>
+
+                        {% if param.example %}
+
+                            <div class="example-box">
+
+                                <code>
+
+                                    {{ param.example }}
+
+                                </code>
+
+                                <button
+                                    class="mini-copy-btn"
+                                    onclick="copyText(
+                                        '{{ param.example }}'
+                                    )"
+                                >
+
+                                    <i class="bi bi-copy"></i>
+
+                                </button>
+
+                            </div>
+
+                        {% else %}
+
+                            <span class="empty-value">
+
+                                -
+
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    {% endif %}
+
+</div>

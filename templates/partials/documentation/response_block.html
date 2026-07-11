@@ -1,0 +1,120 @@
+<div
+    id="response-{{ api.id }}"
+    class="response-box"
+    style="display:none;"
+>
+
+    <!-- ================================= -->
+    <!-- RESPONSE HEADER -->
+    <!-- ================================= -->
+
+    <div class="response-top">
+
+        <!-- LEFT -->
+
+        <div class="response-left">
+
+            <span class="response-title">
+
+                API Response
+
+            </span>
+
+            <span class="success-badge">
+
+                200 OK
+
+            </span>
+
+        </div>
+
+        <!-- RIGHT -->
+
+        <div class="response-buttons">
+
+            <!-- CLEAR OUTPUT -->
+
+            <button
+                class="clear-response-btn"
+                onclick="clearResponse('{{ api.id }}')"
+            >
+
+                <i class="bi bi-trash"></i>
+
+                Clear
+
+            </button>
+
+            <!-- COPY RESPONSE -->
+
+            <button
+                class="response-copy-btn"
+                onclick="copyText(
+                    document.querySelector(
+                        '#response-{{ api.id }} .response-json'
+                    ).innerText
+                )"
+            >
+
+                <i class="bi bi-copy"></i>
+
+                Copy Response
+
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- ================================= -->
+    <!-- REQUEST URL -->
+    <!-- ================================= -->
+
+    <div class="response-url-box">
+
+        <span class="response-url-label">
+
+            Request URL
+
+        </span>
+
+        <div class="response-url-content">
+
+            <code>
+
+                http://127.0.0.1:5000{{ api.example_request }}
+
+            </code>
+
+            <!-- COPY URL -->
+
+            <button
+                class="mini-copy-btn"
+                onclick="copyText(
+                    'http://127.0.0.1:5000{{ api.example_request }}'
+                )"
+            >
+
+                <i class="bi bi-copy"></i>
+
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- ================================= -->
+    <!-- RESPONSE JSON -->
+    <!-- ================================= -->
+
+    <div class="response-json-wrapper">
+
+<pre class="response-json">
+
+{{ api.example_response | tojson(indent=4) }}
+
+</pre>
+
+    </div>
+
+</div>

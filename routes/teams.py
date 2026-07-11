@@ -1,13 +1,25 @@
 from flask import Blueprint
 from flask import request
 
-from utils.team_name_normalization import (
+from team_name_normalization import (
     normalize_team_name
 )
 
 from database.database import (
     get_connection
 )
+
+from utils.api_response import (
+    success_response,
+    error_response
+)
+
+from utils.pagination import get_pagination
+
+
+DEFAULT_TEAM_SEARCH_LIMIT = 10
+
+MAX_TEAM_SEARCH_LIMIT = 50
 
 
 # =========================================
@@ -46,6 +58,123 @@ def execute_query(query, values=None):
     conn.close()
 
     return rows
+
+
+# =========================================
+# TEAM SEARCH
+# =========================================
+
+@teams_bp.route("/teams/search")
+def search_teams():
+
+    team_name = request.args.get(
+
+        "team_name",
+
+        ""
+    ).strip()
+
+    limit = request.args.get(
+
+        "limit",
+
+        default=DEFAULT_TEAM_SEARCH_LIMIT,
+
+        type=int
+    )
+
+    if not team_name:
+
+        return error_response(
+
+            "team_name is required",
+
+            400
+        )
+
+    if limit is None or limit <= 0:
+
+        limit = DEFAULT_TEAM_SEARCH_LIMIT
+
+    if limit > MAX_TEAM_SEARCH_LIMIT:
+
+        limit = MAX_TEAM_SEARCH_LIMIT
+
+    search_pattern = f"%{team_name}%"
+
+    prefix_pattern = f"{team_name}%"
+
+    sql = """
+
+        WITH team_rows AS (
+
+            SELECT
+                team1 AS team,
+                match_id
+            FROM matches
+            WHERE team1 IS NOT NULL
+
+            UNION ALL
+
+            SELECT
+                team2 AS team,
+                match_id
+            FROM matches
+            WHERE team2 IS NOT NULL
+        )
+
+        SELECT
+            team,
+            COUNT(DISTINCT match_id) AS matches
+        FROM team_rows
+        WHERE team ILIKE %s
+        GROUP BY team
+        ORDER BY
+            CASE
+                WHEN LOWER(team) = LOWER(%s) THEN 0
+                WHEN team ILIKE %s THEN 1
+                ELSE 2
+            END,
+            team ASC
+        LIMIT %s
+
+    """
+
+    rows = execute_query(
+
+        sql,
+
+        (
+            search_pattern,
+            team_name,
+            prefix_pattern,
+            limit
+        )
+    )
+
+    teams = []
+
+    for row in rows:
+
+        team = row[0]
+
+        teams.append({
+
+            "team": team,
+
+            "normalized_team": normalize_team_name(team),
+
+            "matches": int(row[1])
+        })
+
+    return success_response({
+
+        "team_name": team_name,
+
+        "count": len(teams),
+
+        "teams": teams
+    })
 
 
 # =========================================
@@ -88,15 +217,20 @@ def most_wins():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY winner
 
         ORDER BY wins DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -107,10 +241,12 @@ def most_wins():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     teams = []
 
@@ -122,15 +258,15 @@ def most_wins():
                 row[0]
             ),
 
-            "wins": row[1]
+            "wins": int(row[1])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 
 
 # =========================================
@@ -280,6 +416,8 @@ def win_percentage():
 
         values.append(team)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY team_name
@@ -306,9 +444,12 @@ def win_percentage():
 
         ORDER BY win_percentage DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -319,10 +460,12 @@ def win_percentage():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     teams = []
 
@@ -334,19 +477,19 @@ def win_percentage():
                 row[0]
             ),
 
-            "matches": row[1],
+            "matches": int(row[1]),
 
-            "wins": row[2],
+            "wins": int(row[2]),
 
             "win_percentage": float(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 
 
 # =========================================
@@ -474,6 +617,8 @@ def playoff_record():
 
         values.append(team)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY team_name
@@ -496,9 +641,12 @@ def playoff_record():
 
             wins DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -509,10 +657,12 @@ def playoff_record():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     teams = []
 
@@ -524,19 +674,19 @@ def playoff_record():
                 row[0]
             ),
 
-            "matches": row[1],
+            "matches": int(row[1]),
 
-            "wins": row[2],
+            "wins": int(row[2]),
 
             "win_percentage": float(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 
 
 # =========================================
@@ -743,10 +893,12 @@ def finals_record():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     teams = []
 
@@ -756,19 +908,19 @@ def finals_record():
 
             "team": row[0],
 
-            "finals_played": row[1],
+            "finals_played": int(row[1]),
 
-            "finals_won": row[2],
+            "finals_won": int(row[2]),
 
             "finals_win_percentage": float(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 # =========================================
 # CHASING RECORD
 # =========================================
@@ -940,6 +1092,8 @@ def chasing_record():
 
         """
 
+    limit, offset = get_pagination()
+
     # ====================================
     # ORDERING
     # ====================================
@@ -952,9 +1106,12 @@ def chasing_record():
 
             successful_chases DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -969,10 +1126,12 @@ def chasing_record():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
@@ -988,21 +1147,21 @@ def chasing_record():
                 row[0]
             ),
 
-            "matches_chased": row[1],
+            "matches_chased": int(row[1]),
 
-            "successful_chases": row[2],
+            "successful_chases": int(row[2]),
 
-            "failed_chases": row[3],
+            "failed_chases": int(row[3]),
 
             "chasing_win_percentage": float(row[4])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 
 # =========================================
 # DEFENDING RECORD
@@ -1175,6 +1334,8 @@ def defending_record():
 
         """
 
+    limit, offset = get_pagination()
+
     # ====================================
     # ORDERING
     # ====================================
@@ -1187,9 +1348,12 @@ def defending_record():
 
             successful_defends DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -1204,10 +1368,12 @@ def defending_record():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
@@ -1223,18 +1389,18 @@ def defending_record():
                 row[0]
             ),
 
-            "matches_defended": row[1],
+            "matches_defended": int(row[1]),
 
-            "successful_defends": row[2],
+            "successful_defends": int(row[2]),
 
-            "failed_defends": row[3],
+            "failed_defends": int(row[3]),
 
             "defending_win_percentage": float(row[4])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })

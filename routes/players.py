@@ -3,16 +3,68 @@ from flask import request
 
 from database.database import get_connection
 
+from utils.api_response import (
+    success_response,
+    error_response
+)
+
+from utils.pagination import get_pagination
+from utils.available_data import load_available_data
+
+
+# =========================================
+# PLAYER NAME NORMALIZATION
+# =========================================
+
+def normalize_player(name):
+    if not name:
+        return name
+
+    available_data = load_available_data()
+    players = available_data["batters"] + available_data["bowlers"]
+
+    lname = name.lower()
+    # exact match
+    for cand in players:
+        if cand.lower() == lname:
+            return cand
+    # substring match
+    for cand in players:
+        if lname in cand.lower() or cand.lower() in lname:
+            return cand
+    # last-name match
+    last = lname.split()[-1]
+    matches = [c for c in players if c.lower().endswith(last)]
+    if matches:
+        return matches[0]
+    return name
+
+# =========================================
+# INVALID DISMISSALS
+# =========================================
+
+INVALID_DISMISSALS = (
+
+    'run out',
+    'retired hurt',
+    'retired out',
+    'obstructing the field'
+)
+
+DEFAULT_PLAYER_SEARCH_LIMIT = 10
+
+MAX_PLAYER_SEARCH_LIMIT = 50
 
 # =========================================
 # BLUEPRINT
 # =========================================
 
 players_bp = Blueprint(
+
     "players",
+
     __name__
 )
-
 
 # =========================================
 # DATABASE HELPER
@@ -24,65 +76,188 @@ def execute_query(query, values=None):
 
     cursor = conn.cursor()
 
-    cursor.execute(
+    try:
 
-        query,
+        cursor.execute(
 
-        values if values else ()
+            query,
+
+            values if values else ()
+        )
+
+        rows = cursor.fetchall()
+
+        return rows
+
+    finally:
+
+        cursor.close()
+
+        conn.close()
+
+# =========================================
+# PLAYER SEARCH
+# =========================================
+
+@players_bp.route("/players/search")
+def search_players():
+
+    player_name = request.args.get(
+
+        "player_name",
+
+        ""
+    ).strip()
+
+    role = request.args.get(
+
+        "role",
+
+        "all"
+    ).strip().lower()
+
+    limit = request.args.get(
+
+        "limit",
+
+        default=DEFAULT_PLAYER_SEARCH_LIMIT,
+
+        type=int
     )
 
-    rows = cursor.fetchall()
+    if not player_name:
 
-    cursor.close()
+        return error_response(
 
-    conn.close()
+            "player_name is required",
 
-    return rows
+            400
+        )
 
+    if role not in ("all", "batter", "bowler"):
 
-from flask import Blueprint
-from flask import request
+        return error_response(
 
-from database.database import get_connection
+            "role must be one of: all, batter, bowler",
 
+            400
+        )
 
-# =========================================
-# BLUEPRINT
-# =========================================
+    if limit is None or limit <= 0:
 
-players_bp = Blueprint(
+        limit = DEFAULT_PLAYER_SEARCH_LIMIT
 
-    "players",
+    if limit > MAX_PLAYER_SEARCH_LIMIT:
 
-    __name__
-)
+        limit = MAX_PLAYER_SEARCH_LIMIT
 
+    search_pattern = f"%{player_name}%"
 
-# =========================================
-# DATABASE HELPER
-# =========================================
+    prefix_pattern = f"{player_name}%"
 
-def execute_query(query, values=None):
+    sql = """
 
-    conn = get_connection()
+        WITH player_roles AS (
 
-    cursor = conn.cursor()
+            SELECT
+                batter AS player,
+                'batter' AS role,
+                match_id
+            FROM deliveries
+            WHERE batter IS NOT NULL
 
-    cursor.execute(
+            UNION ALL
 
-        query,
+            SELECT
+                bowler AS player,
+                'bowler' AS role,
+                match_id
+            FROM deliveries
+            WHERE bowler IS NOT NULL
+        ),
 
-        values if values else ()
+        grouped_players AS (
+
+            SELECT
+                player,
+                BOOL_OR(role = 'batter') AS is_batter,
+                BOOL_OR(role = 'bowler') AS is_bowler,
+                COUNT(DISTINCT match_id) AS matches
+            FROM player_roles
+            WHERE player ILIKE %s
+            GROUP BY player
+        )
+
+        SELECT
+            player,
+            is_batter,
+            is_bowler,
+            matches
+        FROM grouped_players
+        WHERE (
+            %s = 'all'
+            OR (%s = 'batter' AND is_batter = TRUE)
+            OR (%s = 'bowler' AND is_bowler = TRUE)
+        )
+        ORDER BY
+            CASE
+                WHEN LOWER(player) = LOWER(%s) THEN 0
+                WHEN player ILIKE %s THEN 1
+                ELSE 2
+            END,
+            player ASC
+        LIMIT %s
+
+    """
+
+    rows = execute_query(
+
+        sql,
+
+        (
+            search_pattern,
+            role,
+            role,
+            role,
+            player_name,
+            prefix_pattern,
+            limit
+        )
     )
 
-    rows = cursor.fetchall()
+    players = []
 
-    cursor.close()
+    for row in rows:
 
-    conn.close()
+        available_as = []
 
-    return rows
+        if row[1]:
 
+            available_as.append("batter")
+
+        if row[2]:
+
+            available_as.append("bowler")
+
+        players.append({
+
+            "player": row[0],
+
+            "available_as": available_as,
+
+            "matches": int(row[3])
+        })
+
+    return success_response({
+
+        "player_name": player_name,
+
+        "role": role,
+
+        "count": len(players),
+
+        "players": players
+    })
 
 # =========================================
 # PLAYER SUMMARY
@@ -91,26 +266,23 @@ def execute_query(query, values=None):
 @players_bp.route("/players/player-summary")
 def player_summary():
 
-    # ====================================
-    # QUERY PARAM
-    # ====================================
-
     player = request.args.get("player")
-
-    # ====================================
-    # VALIDATION
-    # ====================================
 
     if not player:
 
-        return {
+        return error_response(
 
-            "error": "player is required"
-        }, 400
+            "player is required",
+
+            400
+        )
 
     # ====================================
     # MATCHES PLAYED
     # ====================================
+
+    # Normalize player using available data
+    player = normalize_player(player)
 
     matches_query = """
 
@@ -120,10 +292,12 @@ def player_summary():
 
         FROM deliveries
 
-        WHERE batter = %s
-           OR bowler = %s
+        WHERE batter ILIKE %s
+           OR bowler ILIKE %s
 
     """
+
+    # player already normalized above
 
     matches_row = execute_query(
 
@@ -193,7 +367,9 @@ def player_summary():
 
         AND d.batter = w.player_out
 
-        WHERE d.batter = %s
+        AND w.dismissal_kind NOT IN %s
+
+        WHERE d.batter ILIKE %s
 
     """
 
@@ -201,7 +377,10 @@ def player_summary():
 
         batting_query,
 
-        (player,)
+        (
+            INVALID_DISMISSALS,
+            player
+        )
     )[0]
 
     # ====================================
@@ -216,7 +395,17 @@ def player_summary():
 
             SUM(d.total_run) AS runs_conceded,
 
-            COUNT(w.player_out) AS wickets,
+            COUNT(
+
+                CASE
+
+                    WHEN w.dismissal_kind NOT IN %s
+
+                    THEN w.player_out
+
+                END
+
+            ) AS wickets,
 
             ROUND(
 
@@ -256,7 +445,7 @@ def player_summary():
 
         ON d.delivery_key = w.delivery_key
 
-        WHERE d.bowler = %s
+        WHERE d.bowler ILIKE %s
 
     """
 
@@ -264,7 +453,10 @@ def player_summary():
 
         bowling_query,
 
-        (player,)
+        (
+            INVALID_DISMISSALS,
+            player
+        )
     )[0]
 
     # ====================================
@@ -303,30 +495,32 @@ def player_summary():
 
     ):
 
-        return {
+        return error_response(
 
-            "message": "Player not found"
-        }
+            "Player not found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
     # ====================================
 
-    return {
+    return success_response({
 
         "player": player,
 
         "role": role,
 
-        "matches_played": matches_played,
+        "matches_played": int(matches_played),
 
         "batting": {
 
-            "runs": total_runs,
+            "runs": int(total_runs),
 
-            "balls": batting_row[1] or 0,
+            "balls": int(batting_row[1] or 0),
 
-            "dismissals": batting_row[2] or 0,
+            "dismissals": int(batting_row[2] or 0),
 
             "strike_rate": (
 
@@ -349,11 +543,11 @@ def player_summary():
 
         "bowling": {
 
-            "balls": bowling_row[0] or 0,
+            "balls": int(bowling_row[0] or 0),
 
-            "runs_conceded": bowling_row[1] or 0,
+            "runs_conceded": int(bowling_row[1] or 0),
 
-            "wickets": total_wickets,
+            "wickets": int(total_wickets),
 
             "economy": (
 
@@ -373,7 +567,7 @@ def player_summary():
                 else None
             )
         }
-    }
+    })
 
 # =========================================
 # PLAYER OF THE MATCH
@@ -381,10 +575,6 @@ def player_summary():
 
 @players_bp.route("/players/player-of-the-match")
 def player_of_the_match():
-
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
 
     player = request.args.get("player")
 
@@ -394,10 +584,6 @@ def player_of_the_match():
 
         type=int
     )
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -415,23 +601,15 @@ def player_of_the_match():
 
     values = []
 
-    # ====================================
-    # PLAYER FILTER
-    # ====================================
-
     if player:
 
         query += """
 
-            AND player_of_match = %s
+            AND player_of_match ILIKE %s
 
         """
 
         values.append(player)
-
-    # ====================================
-    # SEASON FILTER
-    # ====================================
 
     if season:
 
@@ -443,27 +621,20 @@ def player_of_the_match():
 
         values.append(season)
 
-    # ====================================
-    # GROUPING
-    # ====================================
+    limit, offset = get_pagination()
 
     query += """
 
         GROUP BY player_of_match
 
-    """
-
-    # ====================================
-    # ORDERING
-    # ====================================
-
-    query += """
-
         ORDER BY awards DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -472,20 +643,14 @@ def player_of_the_match():
         tuple(values)
     )
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
 
-    # ====================================
-    # RESPONSE
-    # ====================================
+            404
+        )
 
     players = []
 
@@ -495,15 +660,15 @@ def player_of_the_match():
 
             "player": row[0],
 
-            "awards": row[1]
+            "awards": int(row[1])
         })
 
-    return {
+    return success_response({
 
         "count": len(players),
 
         "players": players
-    }
+    })
 
 # =========================================
 # PLAYER CAREER SPAN
@@ -512,26 +677,19 @@ def player_of_the_match():
 @players_bp.route("/players/player-career-span")
 def player_career_span():
 
-    # ====================================
-    # QUERY PARAM
-    # ====================================
-
     player = request.args.get("player")
-
-    # ====================================
-    # VALIDATION
-    # ====================================
 
     if not player:
 
-        return {
+        return error_response(
 
-            "error": "player is required"
-        }, 400
+            "player is required",
 
-    # ====================================
-    # SQL QUERY
-    # ====================================
+            400
+        )
+
+    # Normalize player using available data
+    player = normalize_player(player)
 
     query = """
 
@@ -553,11 +711,11 @@ def player_career_span():
 
         WHERE
 
-            d.batter = %s
+            d.batter ILIKE %s
 
             OR
 
-            d.bowler = %s
+            d.bowler ILIKE %s
 
     """
 
@@ -573,33 +731,27 @@ def player_career_span():
 
     row = rows[0]
 
-    # ====================================
-    # NO DATA
-    # ====================================
-
     if row[0] is None:
 
-        return {
+        return error_response(
 
-            "message": "Player not found"
-        }
+            "Player not found",
 
-    # ====================================
-    # RESPONSE
-    # ====================================
+            404
+        )
 
-    return {
+    return success_response({
 
         "player": player,
 
-        "debut_season": row[0],
+        "debut_season": int(row[0]),
 
-        "last_season": row[1],
+        "last_season": int(row[1]),
 
-        "seasons_played": row[2],
+        "seasons_played": int(row[2]),
 
-        "matches_played": row[3]
-    }
+        "matches_played": int(row[3])
+    })
 
 # =========================================
 # BEST ALL-ROUNDERS
@@ -607,10 +759,6 @@ def player_career_span():
 
 @players_bp.route("/players/best-all-rounders")
 def best_all_rounders():
-
-    # ====================================
-    # QUERY PARAMS
-    # ====================================
 
     season = request.args.get(
 
@@ -620,10 +768,6 @@ def best_all_rounders():
     )
 
     player = request.args.get("player")
-
-    # ====================================
-    # BASE QUERY
-    # ====================================
 
     query = """
 
@@ -693,10 +837,6 @@ def best_all_rounders():
 
     values = []
 
-    # ====================================
-    # OPTIONAL FILTERS FOR BATTING
-    # ====================================
-
     if season:
 
         query += """
@@ -711,7 +851,7 @@ def best_all_rounders():
 
         query += """
 
-            AND d.batter = %s
+            AND d.batter ILIKE %s
 
         """
 
@@ -729,7 +869,17 @@ def best_all_rounders():
 
                 d.bowler AS player,
 
-                COUNT(w.player_out) AS wickets,
+                COUNT(
+
+                    CASE
+
+                        WHEN w.dismissal_kind NOT IN %s
+
+                        THEN w.player_out
+
+                    END
+
+                ) AS wickets,
 
                 ROUND(
 
@@ -762,10 +912,6 @@ def best_all_rounders():
 
     """
 
-    # ====================================
-    # OPTIONAL FILTERS FOR BOWLING
-    # ====================================
-
     if season:
 
         query += """
@@ -780,11 +926,13 @@ def best_all_rounders():
 
         query += """
 
-            AND d.bowler = %s
+            AND d.bowler ILIKE %s
 
         """
 
         values.append(player)
+
+    limit, offset = get_pagination()
 
     query += """
 
@@ -808,31 +956,40 @@ def best_all_rounders():
 
             bowling.wickets DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
+
+    # Insert INVALID_DISMISSALS at the position corresponding to the
+    # bowling NOT IN %s placeholder. Batting placeholders (season, player)
+    # appear first in `values` (in that order if present). Compute how many
+    # batting placeholders were added to place INVALID_DISMISSALS correctly.
+    batting_count = 0
+    if request.args.get('season', type=int) is not None:
+        batting_count += 1
+    if request.args.get('player'):
+        batting_count += 1
+
+    final_values = values[:batting_count] + [INVALID_DISMISSALS] + values[batting_count:]
 
     rows = execute_query(
 
         query,
 
-        tuple(values)
+        tuple(final_values)
     )
-
-    # ====================================
-    # NO DATA
-    # ====================================
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
 
-    # ====================================
-    # RESPONSE
-    # ====================================
+            404
+        )
 
     players = []
 
@@ -842,21 +999,20 @@ def best_all_rounders():
 
             "player": row[0],
 
-            "runs": row[1],
+            "runs": int(row[1]),
 
             "batting_strike_rate": float(row[2]),
 
-            "wickets": row[3],
+            "wickets": int(row[3]),
 
             "economy": float(row[4]),
 
             "all_rounder_index": float(row[5])
         })
 
-    return {
+    return success_response({
 
         "count": len(players),
 
         "all_rounders": players
-    }
-
+    })

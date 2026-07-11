@@ -1,0 +1,212 @@
+/* ====================================== */
+/* API SECTION */
+/* ====================================== */
+
+.api-section {
+
+    padding: 120px 0;
+
+    background-color: var(--light-color);
+}
+
+
+/* ====================================== */
+/* SECTION HEADER */
+/* ====================================== */
+
+.section-header {
+
+    margin-bottom: 70px;
+}
+
+
+/* ====================================== */
+/* API CARD */
+/* ====================================== */
+
+.api-card {
+
+    position: relative;
+
+    height: 100%;
+
+    padding: 40px 35px;
+
+    border-radius: 28px;
+
+    background-color: var(--white-color);
+
+    border: 1px solid rgba(15,23,42,0.06);
+
+    overflow: hidden;
+
+    transition: var(--transition);
+
+    box-shadow: var(--shadow-sm);
+}
+
+
+/* ====================================== */
+/* CARD HOVER */
+/* ====================================== */
+
+.api-card:hover {
+
+    transform: translateY(-10px);
+
+    box-shadow: var(--shadow-lg);
+
+    border-color: rgba(37,99,235,0.15);
+}
+
+
+/* ====================================== */
+/* TOP GLOW EFFECT */
+/* ====================================== */
+
+.api-card::before {
+
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+
+    left: 0;
+
+    width: 100%;
+
+    height: 5px;
+
+    background:
+
+        linear-gradient(
+
+            135deg,
+
+            var(--primary-color),
+
+            var(--secondary-color)
+        );
+
+    transform: scaleX(0);
+
+    transform-origin: left;
+
+    transition: var(--transition);
+}
+
+
+.api-card:hover::before {
+
+    transform: scaleX(1);
+}
+
+
+/* ====================================== */
+/* API ICON */
+/* ====================================== */
+
+.api-icon {
+
+    width: 70px;
+
+    height: 70px;
+
+    border-radius: 20px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    margin-bottom: 28px;
+
+    background:
+
+        linear-gradient(
+
+            135deg,
+
+            rgba(37,99,235,0.1),
+
+            rgba(124,58,237,0.1)
+        );
+}
+
+
+/* ====================================== */
+/* ICON */
+/* ====================================== */
+
+.api-icon i {
+
+    font-size: 30px;
+
+    color: var(--primary-color);
+}
+
+
+/* ====================================== */
+/* CARD TITLE */
+/* ====================================== */
+
+.api-card h3 {
+
+    font-size: 30px;
+
+    font-weight: 700;
+
+    color: var(--dark-color);
+
+    margin-bottom: 18px;
+
+    transition: var(--transition);
+}
+
+
+/* ====================================== */
+/* CARD TEXT */
+/* ====================================== */
+
+.api-card p {
+
+    font-size: 17px;
+
+    line-height: 1.8;
+
+    color: var(--muted-text);
+
+    margin: 0;
+}
+
+
+/* ====================================== */
+/* CARD HOVER TEXT */
+/* ====================================== */
+
+.api-card:hover h3 {
+
+    color: var(--primary-color);
+}
+
+
+/* ====================================== */
+/* CARD LINK */
+/* ====================================== */
+
+.api-section a {
+
+    color: inherit;
+}
+
+
+/* ====================================== */
+/* GRID SPACING */
+/* ====================================== */
+
+.api-section .row {
+
+    row-gap: 30px;
+}

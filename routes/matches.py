@@ -4,6 +4,12 @@ import sys
 from flask import Blueprint
 from flask import request
 
+from utils.pagination import get_pagination
+from utils.api_response import (
+    success_response,
+    error_response
+)
+
 # =========================================
 # PROJECT ROOT
 # =========================================
@@ -28,7 +34,7 @@ from database.database import (
     get_connection
 )
 
-from utils.team_name_normalization import (
+from team_name_normalization import (
     normalize_team_name
 )
 
@@ -75,26 +81,7 @@ def execute_query(query, values=None):
 @matches_bp.route("/matches")
 def all_matches():
 
-    limit = request.args.get(
-
-        "limit",
-
-        default=10,
-
-        type=int
-    )
-
-    # =====================================
-    # SAFETY
-    # =====================================
-
-    if limit <= 0:
-
-        limit = 10
-
-    if limit > 100:
-
-        limit = 100
+    limit, offset = get_pagination()
 
     # =====================================
     # QUERY
@@ -123,6 +110,7 @@ def all_matches():
         ORDER BY match_date ASC
 
         LIMIT %s
+        OFFSET %s
 
     """
 
@@ -130,7 +118,7 @@ def all_matches():
 
         query,
 
-        (limit,)
+        (limit, offset)
     )
 
     matches_list = []
@@ -181,12 +169,12 @@ def all_matches():
             "match_date": str(row[13])
         })
 
-    return {
+    return success_response({
 
         "count": len(matches_list),
 
         "matches": matches_list
-    }
+    })
 
 # =========================================
 # MATCHES BY SEASON
@@ -194,6 +182,8 @@ def all_matches():
 
 @matches_bp.route("/matches/season/<int:season>")
 def get_match_by_season(season):
+
+    limit, offset = get_pagination()
 
     query = """
 
@@ -219,13 +209,16 @@ def get_match_by_season(season):
 
         ORDER BY match_date ASC
 
+        LIMIT %s
+        OFFSET %s
+
     """
 
     rows = execute_query(
 
         query,
 
-        (season,)
+        (season, limit, offset)
     )
 
     matches_list = []
@@ -276,14 +269,14 @@ def get_match_by_season(season):
             "match_date": str(row[13])
         })
 
-    return {
+    return success_response({
 
         "season": season,
 
         "count": len(matches_list),
 
         "matches": matches_list
-    }
+    })
 
 # =========================================
 # FILTER MATCHES
@@ -409,12 +402,12 @@ def filter_matches():
             ) if row[6] else None
         })
 
-    return {
+    return success_response({
 
         "count": len(matches),
 
         "matches": matches
-    }
+    })
 
 # =========================================
 # HEAD TO HEAD
@@ -429,21 +422,21 @@ def head_to_head():
 
     if not team1 or not team2:
 
-        return {
+        return error_response(
 
-            "error":
-            "team1 and team2 are required"
+            "team1 and team2 are required",
 
-        }, 400
+            400
+        )
 
     if team1 == team2:
 
-        return {
+        return error_response(
 
-            "error":
-            "Both teams cannot be same"
+            "Both teams cannot be same",
 
-        }, 400
+            400
+        )
 
     query = """
 
@@ -536,7 +529,7 @@ def head_to_head():
             "match_date": str(row[7])
         })
 
-    return {
+    return success_response({
 
         "summary": {
 
@@ -558,7 +551,7 @@ def head_to_head():
         },
 
         "matches": matches
-    }
+    })
 
 # =========================================
 # ALL TITLE WINNERS
@@ -598,12 +591,12 @@ def get_all_title_winners():
         )
     )
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 
 # =========================================
 # TITLE COUNTS
@@ -645,15 +638,15 @@ def title_counts():
                 row[0]
             ),
 
-            "titles": row[1]
+            "titles": int(row[1])
         })
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "title_counts": teams
-    }
+    })
 
 # =========================================
 # MOST SUCCESSFUL TEAM
@@ -682,10 +675,12 @@ def most_successful_team():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     top_team = rows[0][0]
 
@@ -722,17 +717,17 @@ def most_successful_team():
 
     ) * 100
 
-    return {
+    return success_response({
 
         "team": normalize_team_name(
             top_team
         ),
 
-        "total_matches": total_matches,
+        "total_matches": int(total_matches),
 
-        "wins": total_wins,
+        "wins": int(total_wins),
 
-        "losses": losses,
+        "losses": int(losses),
 
         "win_percentage": round(
 
@@ -740,7 +735,7 @@ def most_successful_team():
 
             2
         )
-    }
+    })
 
 # =========================================
 # ALL UNIQUE IPL TEAMS
@@ -788,12 +783,12 @@ def get_all_teams():
         )
     )
 
-    return {
+    return success_response({
 
         "count": len(teams),
 
         "teams": teams
-    }
+    })
 
 # =========================================
 # HIGHEST RUN CHASES
@@ -883,6 +878,8 @@ def highest_run_chases():
 
         values.append(team)
 
+    limit, offset = get_pagination()
+
     # ====================================
     # ORDERING
     # ====================================
@@ -895,7 +892,8 @@ def highest_run_chases():
 
             result_margin DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
 
@@ -903,7 +901,7 @@ def highest_run_chases():
 
         query,
 
-        tuple(values)
+        tuple(values + [limit, offset])
     )
 
     # ====================================
@@ -912,10 +910,12 @@ def highest_run_chases():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
@@ -941,23 +941,23 @@ def highest_run_chases():
 
             "city": row[4],
 
-            "target": row[5],
+            "target": int(row[5]),
 
             "winner": normalize_team_name(
                 row[6]
             ),
 
-            "wickets_remaining": row[7],
+            "wickets_remaining": int(row[7]),
 
             "match_date": str(row[8])
         })
 
-    return {
+    return success_response({
 
         "count": len(chases),
 
         "highest_run_chases": chases
-    }
+    })
 
 # =========================================
 # HIGHEST TEAM TOTALS
@@ -1045,6 +1045,8 @@ def highest_team_totals():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     # ====================================
     # GROUPING
     # ====================================
@@ -1072,7 +1074,8 @@ def highest_team_totals():
 
             total_runs DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
 
@@ -1080,7 +1083,7 @@ def highest_team_totals():
 
         query,
 
-        tuple(values)
+        tuple(values + [limit, offset])
     )
 
     # ====================================
@@ -1089,10 +1092,12 @@ def highest_team_totals():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
@@ -1116,17 +1121,17 @@ def highest_team_totals():
 
             "city": row[4],
 
-            "innings": row[5],
+            "innings": int(row[5]),
 
-            "total_runs": row[6]
+            "total_runs": int(row[6])
         })
 
-    return {
+    return success_response({
 
         "count": len(totals),
 
         "highest_team_totals": totals
-    }
+    })
 
 # =========================================
 # LOWEST DEFENDED SCORES
@@ -1231,6 +1236,8 @@ def lowest_defended_scores():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     # ====================================
     # GROUPING
     # ====================================
@@ -1263,7 +1270,8 @@ def lowest_defended_scores():
 
             result_margin ASC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
 
@@ -1271,7 +1279,7 @@ def lowest_defended_scores():
 
         query,
 
-        tuple(values)
+        tuple(values + [limit, offset])
     )
 
     # ====================================
@@ -1280,10 +1288,12 @@ def lowest_defended_scores():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
@@ -1311,21 +1321,21 @@ def lowest_defended_scores():
 
             "city": row[5],
 
-            "defended_score": row[6],
+            "defended_score": int(row[6]),
 
             "winner": normalize_team_name(
                 row[7]
             ),
 
-            "win_margin_runs": row[8]
+            "win_margin_runs": int(row[8])
         })
 
-    return {
+    return success_response({
 
         "count": len(scores),
 
         "lowest_defended_scores": scores
-    }
+    })
 
 # =========================================
 # LOWEST TEAM TOTALS
@@ -1415,6 +1425,8 @@ def lowest_team_totals():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     # ====================================
     # GROUPING
     # ====================================
@@ -1443,7 +1455,8 @@ def lowest_team_totals():
 
             total_runs ASC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
 
@@ -1451,7 +1464,7 @@ def lowest_team_totals():
 
         query,
 
-        tuple(values)
+        tuple(values + [limit, offset])
     )
 
     # ====================================
@@ -1460,10 +1473,12 @@ def lowest_team_totals():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
@@ -1487,21 +1502,21 @@ def lowest_team_totals():
 
             "city": row[4],
 
-            "innings": row[5],
+            "innings": int(row[5]),
 
-            "total_runs": row[6],
+            "total_runs": int(row[6]),
 
             "winner": normalize_team_name(
                 row[7]
             )
         })
 
-    return {
+    return success_response({
 
         "count": len(totals),
 
         "lowest_team_totals": totals
-    }
+    })
 
 # =========================================
 # CLOSEST FINISHES
@@ -1620,10 +1635,12 @@ def closest_finishes():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
@@ -1664,12 +1681,12 @@ def closest_finishes():
             "match_date": str(row[10])
         })
 
-    return {
+    return success_response({
 
         "count": len(matches),
 
         "closest_finishes": matches
-    }
+    })
 
 # =========================================
 # SUPER OVER MATCHES
@@ -1796,10 +1813,12 @@ def super_over_matches():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # ====================================
     # RESPONSE
@@ -1838,12 +1857,12 @@ def super_over_matches():
             "match_date": str(row[9])
         })
 
-    return {
+    return success_response({
 
         "count": len(matches),
 
         "super_over_matches": matches
-    }
+    })
 
 # =========================================
 # HIGHEST SUCCESSFUL CHASES
@@ -1972,6 +1991,8 @@ def highest_successful_chases():
 
         values.append(team)
 
+    limit, offset = get_pagination()
+
     # =====================================
     # ORDERING
     # =====================================
@@ -1984,7 +2005,8 @@ def highest_successful_chases():
 
             wickets_left DESC
 
-        LIMIT 10
+        LIMIT %s
+        OFFSET %s
 
     """
 
@@ -1992,7 +2014,7 @@ def highest_successful_chases():
 
         query,
 
-        tuple(values)
+        tuple(values + [limit, offset])
     )
 
     # =====================================
@@ -2001,10 +2023,12 @@ def highest_successful_chases():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "No data found"
-        }
+            "No data found",
+
+            404
+        )
 
     # =====================================
     # RESPONSE
@@ -2022,11 +2046,11 @@ def highest_successful_chases():
 
             "team": row[2],
 
-            "target": row[3],
+            "target": int(row[3]),
 
-            "chased_score": row[4],
+            "chased_score": int(row[4]),
 
-            "wickets_left": row[5],
+            "wickets_left": int(row[5]),
 
             "venue": row[6],
 
@@ -2037,10 +2061,9 @@ def highest_successful_chases():
             "winner": row[9]
         })
 
-    return {
+    return success_response({
 
         "count": len(chases),
 
         "highest_successful_chases": chases
-    }
-
+    })

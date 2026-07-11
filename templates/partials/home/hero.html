@@ -1,0 +1,113 @@
+<section class="hero-section"><!-- ================================= -->
+<!-- HERO OVERLAY -->
+<!-- ================================= -->
+
+<div class="hero-overlay"></div>
+
+<!-- ================================= -->
+<!-- HERO CONTENT -->
+<!-- ================================= -->
+
+<div class="container position-relative">
+
+    <div class="row align-items-center min-vh-100">
+
+        <!-- ================================= -->
+        <!-- LEFT CONTENT -->
+        <!-- ================================= -->
+
+        <div class="col-lg-7">
+
+            <!-- BADGE -->
+
+            <span class="hero-badge">
+
+                IPL DATA PLATFORM
+
+            </span>
+
+            <!-- TITLE -->
+
+            <h1 class="hero-title">
+
+                Powerful IPL Analytics APIs
+                for Developers
+
+            </h1>
+
+            <!-- SUBTITLE -->
+
+            <p class="hero-subtitle">
+
+                Access ball-by-ball IPL data,
+                player statistics, team analytics,
+                match insights, records, and
+                advanced cricket intelligence
+                through modern REST APIs.
+
+            </p>
+
+            <!-- BUTTONS -->
+
+            <div class="hero-buttons">
+
+                <!-- PRIMARY -->
+
+                <a
+                    href="/documentation"
+                    class="btn btn-lg hero-primary-btn"
+                >
+
+                    Explore APIs
+
+                </a>
+
+                <!-- SECONDARY -->
+
+                <a
+                    href="#api-categories"
+                    class="btn btn-lg hero-secondary-btn"
+                >
+
+                    View Categories
+
+                </a>
+
+            </div>
+
+            <!-- STATS -->
+
+            {% include "partials/home/stats.html" %}
+
+        </div>
+
+        <!-- ================================= -->
+        <!-- RIGHT SIDE -->
+        <!-- ================================= -->
+
+        <div class="col-lg-5 d-none d-lg-block">
+
+            <div class="hero-code-card">
+
+<pre>
+GET /batting/orange-cap-by-season
+
+{
+    "count": 17,
+    "orange_caps": [
+        {
+            "season": 2008,
+            "player": "S Raina",
+            "runs": 600
+        }
+    ]
+}
+</pre>            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+</section>

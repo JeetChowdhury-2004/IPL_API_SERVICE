@@ -1,0 +1,59 @@
+<!-- ================================= -->
+<!-- API CARD -->
+<!-- ================================= -->
+
+<div class="api-card">
+
+    <!-- ================================= -->
+    <!-- API HEADER -->
+    <!-- ================================= -->
+
+    <div
+        class="api-card-header"
+        onclick="toggleApiCard('{{ api.id }}')"
+    >
+
+        {% include "partials/documentation/components/endpoint_header.html" %}
+
+    </div>
+
+    <!-- ================================= -->
+    <!-- API BODY -->
+    <!-- ================================= -->
+
+    <div
+        id="api-body-{{ api.id }}"
+        class="api-card-body"
+    >
+
+        <!-- ============================= -->
+        <!-- QUERY PARAMETERS -->
+        <!-- ============================= -->
+
+        {% if api.query_params %}
+
+            {% include "partials/documentation/query_params.html" %}
+
+        {% endif %}
+
+        <!-- ============================= -->
+        <!-- LIVE TESTER -->
+        <!-- ============================= -->
+
+        {% include "partials/documentation/live_tester.html" %}
+
+        <!-- ============================= -->
+        <!-- EXAMPLE REQUEST -->
+        <!-- ============================= -->
+
+        {% include "partials/documentation/example_request.html" %}
+
+        <!-- ============================= -->
+        <!-- EXAMPLE RESPONSE -->
+        <!-- ============================= -->
+
+        {% include "partials/documentation/example_response.html" %}
+
+    </div>
+
+</div>

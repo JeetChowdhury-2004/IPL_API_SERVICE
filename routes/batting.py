@@ -3,6 +3,12 @@ from flask import request
 
 from database.database import get_connection
 
+from utils.api_response import (
+    success_response,
+    error_response
+)
+
+from utils.pagination import get_pagination
 
 # =========================================
 # INVALID DISMISSALS
@@ -10,9 +16,8 @@ from database.database import get_connection
 
 INVALID_DISMISSALS = (
 
-    'retired hurt'
+    'retired hurt',
 )
-
 
 # =========================================
 # BLUEPRINT
@@ -25,7 +30,6 @@ batting_bp = Blueprint(
     __name__
 )
 
-
 # =========================================
 # DATABASE HELPER
 # =========================================
@@ -36,21 +40,24 @@ def execute_query(query, values=None):
 
     cursor = conn.cursor()
 
-    cursor.execute(
+    try:
 
-        query,
+        cursor.execute(
 
-        values if values else ()
-    )
+            query,
 
-    rows = cursor.fetchall()
+            values if values else ()
+        )
 
-    cursor.close()
+        rows = cursor.fetchall()
 
-    conn.close()
+        return rows
 
-    return rows
+    finally:
 
+        cursor.close()
+
+        conn.close()
 
 # =========================================
 # MOST RUNS
@@ -91,7 +98,7 @@ def most_runs():
 
         query += """
 
-            AND d.batter = %s
+            AND d.batter ILIKE %s
 
         """
 
@@ -107,6 +114,8 @@ def most_runs():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY d.batter
@@ -115,13 +124,14 @@ def most_runs():
 
     """
 
-    if not player:
+    query += """
 
-        query += """
+        LIMIT %s
+        OFFSET %s
 
-            LIMIT 10
+    """
 
-        """
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -132,10 +142,12 @@ def most_runs():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "Player not found"
-        }, 404
+            "Player not found",
+
+            404
+        )
 
     if player:
 
@@ -145,14 +157,14 @@ def most_runs():
 
             "player": row[0],
 
-            "runs": row[1]
+            "runs": int(row[1])
         }
 
         if season:
 
             response["season"] = season
 
-        return response
+        return success_response(response)
 
     players = []
 
@@ -162,16 +174,15 @@ def most_runs():
 
             "player": row[0],
 
-            "runs": row[1]
+            "runs": int(row[1])
         })
 
-    return {
+    return success_response({
 
         "count": len(players),
 
         "players": players
-    }
-
+    })
 
 # =========================================
 # HIGHEST INDIVIDUAL SCORES
@@ -216,7 +227,7 @@ def highest_score():
 
         query += """
 
-            AND d.batter = %s
+            AND d.batter ILIKE %s
 
         """
 
@@ -231,6 +242,8 @@ def highest_score():
         """
 
         values.append(season)
+
+    limit, offset = get_pagination()
 
     query += """
 
@@ -247,9 +260,12 @@ def highest_score():
 
         query += """
 
-            LIMIT 10
+            LIMIT %s
+            OFFSET %s
 
         """
+
+        values.extend([limit, offset])
 
     else:
 
@@ -268,16 +284,18 @@ def highest_score():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "Player not found"
-        }, 404
+            "Player not found",
+
+            404
+        )
 
     if player:
 
         row = rows[0]
 
-        return {
+        return success_response({
 
             "player": row[0],
 
@@ -285,8 +303,8 @@ def highest_score():
 
             "season": row[2],
 
-            "highest_score": row[3]
-        }
+            "highest_score": int(row[3])
+        })
 
     innings_list = []
 
@@ -300,16 +318,15 @@ def highest_score():
 
             "season": row[2],
 
-            "runs": row[3]
+            "runs": int(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(innings_list),
 
         "highest_scores": innings_list
-    }
-
+    })
 
 # =========================================
 # STRIKE RATE
@@ -365,7 +382,7 @@ def strike_rate():
 
         query += """
 
-            AND d.batter = %s
+            AND d.batter ILIKE %s
 
         """
 
@@ -381,27 +398,31 @@ def strike_rate():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY d.batter
 
     """
 
-    if not player and not season:
+    if not player:
 
-        query += """
+        if not season:
 
-            HAVING COUNT(*) >= 500
+            query += """
 
-        """
+                HAVING COUNT(*) >= 500
 
-    elif season:
+            """
 
-        query += """
+        else:
 
-            HAVING COUNT(*) >= 100
+            query += """
 
-        """
+                HAVING COUNT(*) >= 100
+
+            """
 
     query += """
 
@@ -413,9 +434,12 @@ def strike_rate():
 
         query += """
 
-            LIMIT 10
+            LIMIT %s
+            OFFSET %s
 
         """
+
+        values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -426,10 +450,12 @@ def strike_rate():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "Player not found"
-        }, 404
+            "Player not found",
+
+            404
+        )
 
     if player:
 
@@ -439,9 +465,9 @@ def strike_rate():
 
             "player": row[0],
 
-            "runs": row[1],
+            "runs": int(row[1]),
 
-            "balls": row[2],
+            "balls": int(row[2]),
 
             "strike_rate": float(row[3])
         }
@@ -450,7 +476,7 @@ def strike_rate():
 
             response["season"] = season
 
-        return response
+        return success_response(response)
 
     players = []
 
@@ -460,20 +486,19 @@ def strike_rate():
 
             "player": row[0],
 
-            "runs": row[1],
+            "runs": int(row[1]),
 
-            "balls": row[2],
+            "balls": int(row[2]),
 
             "strike_rate": float(row[3])
         })
 
-    return {
+    return success_response({
 
         "count": len(players),
 
         "players": players
-    }
-
+    })
 
 # =========================================
 # BATTING AVERAGE
@@ -537,7 +562,7 @@ def batting_average():
 
         query += """
 
-            AND d.batter = %s
+            AND d.batter ILIKE %s
 
         """
 
@@ -553,27 +578,31 @@ def batting_average():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY d.batter
 
     """
 
-    if not player and not season:
+    if not player:
 
-        query += """
+        if not season:
 
-            HAVING COUNT(*) >= 500
+            query += """
 
-        """
+                HAVING COUNT(*) >= 500
 
-    elif season:
+            """
 
-        query += """
+        else:
 
-            HAVING COUNT(*) >= 100
+            query += """
 
-        """
+                HAVING COUNT(*) >= 100
+
+            """
 
     query += """
 
@@ -585,9 +614,12 @@ def batting_average():
 
         query += """
 
-            LIMIT 10
+            LIMIT %s
+            OFFSET %s
 
         """
+
+        values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -598,10 +630,12 @@ def batting_average():
 
     if not rows:
 
-        return {
+        return error_response(
 
-            "message": "Player not found"
-        }, 404
+            "Player not found",
+
+            404
+        )
 
     if player:
 
@@ -611,9 +645,9 @@ def batting_average():
 
             "player": row[0],
 
-            "runs": row[1],
+            "runs": int(row[1]),
 
-            "dismissals": row[2],
+            "dismissals": int(row[2]),
 
             "batting_average": (
 
@@ -629,7 +663,7 @@ def batting_average():
 
             response["season"] = season
 
-        return response
+        return success_response(response)
 
     players = []
 
@@ -639,9 +673,9 @@ def batting_average():
 
             "player": row[0],
 
-            "runs": row[1],
+            "runs": int(row[1]),
 
-            "dismissals": row[2],
+            "dismissals": int(row[2]),
 
             "batting_average": (
 
@@ -653,13 +687,12 @@ def batting_average():
             )
         })
 
-    return {
+    return success_response({
 
         "count": len(players),
 
         "players": players
-    }
-
+    })
 
 # =========================================
 # MOST SIXES
@@ -700,7 +733,7 @@ def most_sixes():
 
         query += """
 
-            AND d.batter = %s
+            AND d.batter ILIKE %s
 
         """
 
@@ -716,6 +749,8 @@ def most_sixes():
 
         values.append(season)
 
+    limit, offset = get_pagination()
+
     query += """
 
         GROUP BY d.batter
@@ -728,9 +763,12 @@ def most_sixes():
 
         query += """
 
-            LIMIT 10
+            LIMIT %s
+            OFFSET %s
 
         """
+
+        values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -741,10 +779,7 @@ def most_sixes():
 
     if not rows:
 
-        return {
-
-            "message": "No data found"
-        }
+        return error_response("No data found")
 
     players = []
 
@@ -754,16 +789,15 @@ def most_sixes():
 
             "player": row[0],
 
-            "sixes": row[1]
+            "sixes": int(row[1])
         })
 
-    return {
+    return success_response({
 
         "count": len(players),
 
         "players": players
-    }
-
+    })
 
 # =========================================
 # MOST FOURS
@@ -804,7 +838,7 @@ def most_fours():
 
         query += """
 
-            AND d.batter = %s
+            AND d.batter ILIKE %s
 
         """
 
@@ -819,6 +853,8 @@ def most_fours():
         """
 
         values.append(season)
+
+    limit, offset = get_pagination()
 
     query += """
 
@@ -832,9 +868,12 @@ def most_fours():
 
         query += """
 
-            LIMIT 10
+            LIMIT %s
+            OFFSET %s
 
         """
+
+        values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -845,10 +884,7 @@ def most_fours():
 
     if not rows:
 
-        return {
-
-            "message": "No data found"
-        }
+        return error_response("No data found")
 
     players = []
 
@@ -858,332 +894,18 @@ def most_fours():
 
             "player": row[0],
 
-            "fours": row[1]
+            "fours": int(row[1])
         })
 
-    return {
+    return success_response({
 
         "count": len(players),
 
         "players": players
-    }
-
-
-# =========================================
-# MOST FIFTIES
-# =========================================
-
-@batting_bp.route("/batting/50s")
-def fifties():
-
-    player = request.args.get("player")
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    query = """
-
-        SELECT
-            batter,
-
-            COUNT(*) AS fifties
-
-        FROM (
-
-            SELECT
-                d.batter,
-                d.match_id,
-
-                SUM(d.batsman_run) AS runs
-
-            FROM deliveries d
-
-            JOIN matches m
-
-            ON d.match_id = m.match_id
-
-            WHERE 1=1
-
-    """
-
-    values = []
-
-    if player:
-
-        query += """
-
-            AND d.batter = %s
-
-        """
-
-        values.append(player)
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    query += """
-
-            GROUP BY
-                d.batter,
-                d.match_id
-
-            HAVING
-                SUM(d.batsman_run) >= 50
-                AND SUM(d.batsman_run) < 100
-
-        ) AS innings_scores
-
-        GROUP BY batter
-
-        ORDER BY fifties DESC
-
-        LIMIT 10
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    if not rows:
-
-        return {
-
-            "message": "No data found"
-        }
-
-    players = []
-
-    for row in rows:
-
-        players.append({
-
-            "player": row[0],
-
-            "fifties": row[1]
-        })
-
-    return {
-
-        "count": len(players),
-
-        "players": players
-    }
-
+    })
 
 # =========================================
-# MOST HUNDREDS
-# =========================================
-
-@batting_bp.route("/batting/100s")
-def hundreds():
-
-    player = request.args.get("player")
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    query = """
-
-        SELECT
-            batter,
-
-            COUNT(*) AS hundreds
-
-        FROM (
-
-            SELECT
-                d.batter,
-                d.match_id,
-
-                SUM(d.batsman_run) AS runs
-
-            FROM deliveries d
-
-            JOIN matches m
-
-            ON d.match_id = m.match_id
-
-            WHERE 1=1
-
-    """
-
-    values = []
-
-    if player:
-
-        query += """
-
-            AND d.batter = %s
-
-        """
-
-        values.append(player)
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    query += """
-
-            GROUP BY
-                d.batter,
-                d.match_id
-
-            HAVING
-                SUM(d.batsman_run) >= 100
-
-        ) AS innings_scores
-
-        GROUP BY batter
-
-        ORDER BY hundreds DESC
-
-        LIMIT 10
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    if not rows:
-
-        return {
-
-            "message": "No data found"
-        }
-
-    players = []
-
-    for row in rows:
-
-        players.append({
-
-            "player": row[0],
-
-            "hundreds": row[1]
-        })
-
-    return {
-
-        "count": len(players),
-
-        "players": players
-    }
-
-
-# =========================================
-# ORANGE CAP
-# =========================================
-
-@batting_bp.route("/batting/orange-cap")
-def orange_cap():
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    query = """
-
-        SELECT
-            d.batter,
-
-            SUM(d.batsman_run) AS runs
-
-        FROM deliveries d
-
-        JOIN matches m
-
-        ON d.match_id = m.match_id
-
-        WHERE 1=1
-
-    """
-
-    values = []
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    query += """
-
-        GROUP BY d.batter
-
-        ORDER BY runs DESC
-
-        LIMIT 1
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    if not rows:
-
-        return {
-
-            "message": "No data found"
-        }
-
-    row = rows[0]
-
-    response = {
-
-        "player": row[0],
-
-        "runs": row[1]
-    }
-
-    if season:
-
-        response["season"] = season
-
-    return response
-
-
-# =========================================
+# ORANGE CAP BY SEASON# =========================================
 # ORANGE CAP BY SEASON
 # =========================================
 
@@ -1243,9 +965,14 @@ def orange_cap_by_season():
 
         ORDER BY season ASC
 
+        LIMIT %s
+        OFFSET %s
+
     """
 
-    rows = execute_query(query)
+    limit, offset = get_pagination()
+
+    rows = execute_query(query, (limit, offset))
 
     results = []
 
@@ -1257,12 +984,312 @@ def orange_cap_by_season():
 
             "player": row[1],
 
-            "runs": row[2]
+            "runs": int(row[2])
         })
 
-    return {
+    return success_response({
 
         "count": len(results),
 
         "orange_caps": results
-    }
+    })
+
+
+
+# =========================================
+# MOST 50s
+# =========================================
+
+@batting_bp.route("/batting/most-50s")
+def most_fifties():
+
+    player = request.args.get("player")
+
+    season = request.args.get(
+
+        "season",
+
+        type=int
+    )
+
+    query = """
+
+        WITH player_scores AS (
+
+            SELECT
+                d.batter,
+
+                d.match_id,
+
+                m.season,
+
+                SUM(d.batsman_run) AS runs
+
+            FROM deliveries d
+
+            JOIN matches m
+
+            ON d.match_id = m.match_id
+
+            WHERE 1=1
+
+    """
+
+    values = []
+
+    if player:
+
+        query += """
+
+            AND d.batter ILIKE %s
+
+        """
+
+        values.append(player)
+
+    if season:
+
+        query += """
+
+            AND m.season = %s
+
+        """
+
+        values.append(season)
+
+    limit, offset = get_pagination()
+
+    query += """
+
+            GROUP BY
+                d.batter,
+                d.match_id,
+                m.season
+        )
+
+        SELECT
+            batter,
+
+            COUNT(*) AS fifties
+
+        FROM player_scores
+
+        WHERE runs >= 50
+        AND runs < 100
+
+        GROUP BY batter
+
+        ORDER BY fifties DESC
+
+    """
+
+    if not player:
+
+        query += """
+
+            LIMIT %s
+            OFFSET %s
+
+        """
+
+        values.extend([limit, offset])
+
+    rows = execute_query(
+
+        query,
+
+        tuple(values)
+    )
+
+    if not rows:
+
+        return error_response(
+
+            "Player not found",
+
+            404
+        )
+
+    if player:
+
+        row = rows[0]
+
+        response = {
+
+            "player": row[0],
+
+            "fifties": int(row[1])
+        }
+
+        if season:
+
+            response["season"] = season
+
+        return success_response(response)
+
+    players = []
+
+    for row in rows:
+
+        players.append({
+
+            "player": row[0],
+
+            "fifties": int(row[1])
+        })
+
+    return success_response({
+
+        "count": len(players),
+
+        "players": players
+    })
+
+
+# =========================================
+# MOST 100s
+# =========================================
+
+@batting_bp.route("/batting/most-100s")
+def most_hundreds():
+
+    player = request.args.get("player")
+
+    season = request.args.get(
+
+        "season",
+
+        type=int
+    )
+
+    query = """
+
+        WITH player_scores AS (
+
+            SELECT
+                d.batter,
+
+                d.match_id,
+
+                m.season,
+
+                SUM(d.batsman_run) AS runs
+
+            FROM deliveries d
+
+            JOIN matches m
+
+            ON d.match_id = m.match_id
+
+            WHERE 1=1
+
+    """
+
+    values = []
+
+    if player:
+
+        query += """
+
+            AND d.batter ILIKE %s
+
+        """
+
+        values.append(player)
+
+    if season:
+
+        query += """
+
+            AND m.season = %s
+
+        """
+
+        values.append(season)
+
+    limit, offset = get_pagination()
+
+    query += """
+
+            GROUP BY
+                d.batter,
+                d.match_id,
+                m.season
+        )
+
+        SELECT
+            batter,
+
+            COUNT(*) AS hundreds
+
+        FROM player_scores
+
+        WHERE runs >= 100
+
+        GROUP BY batter
+
+        ORDER BY hundreds DESC
+
+    """
+
+    if not player:
+
+        query += """
+
+            LIMIT %s
+            OFFSET %s
+
+        """
+
+        values.extend([limit, offset])
+
+    rows = execute_query(
+
+        query,
+
+        tuple(values)
+    )
+
+    if not rows:
+
+        return error_response(
+
+            "Player not found",
+
+            404
+        )
+
+    if player:
+
+        row = rows[0]
+
+        response = {
+
+            "player": row[0],
+
+            "hundreds": int(row[1])
+        }
+
+        if season:
+
+            response["season"] = season
+
+        return success_response(response)
+
+    players = []
+
+    for row in rows:
+
+        players.append({
+
+            "player": row[0],
+
+            "hundreds": int(row[1])
+        })
+
+    return success_response({
+
+        "count": len(players),
+
+        "players": players
+    })

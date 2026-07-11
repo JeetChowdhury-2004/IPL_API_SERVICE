@@ -1,0 +1,177 @@
+/* ======================================
+   FOOTER
+====================================== */
+
+.footer {
+
+    background-color: #ffffff;
+
+    border-top: 1px solid rgba(15,23,42,0.06);
+
+    padding: 60px 20px 30px;
+
+    text-align: center;
+}
+
+
+/* ======================================
+   FOOTER TOP
+====================================== */
+
+.footer-top {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    gap: 24px;
+}
+
+
+/* ======================================
+   FOOTER BRAND
+====================================== */
+
+.footer-brand {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+}
+
+
+.footer-brand h3 {
+
+    font-size: 42px;
+
+    font-weight: 800;
+
+    margin-bottom: 14px;
+
+    color: #0f172a;
+}
+
+
+.footer-brand p {
+
+    max-width: 700px;
+
+    margin: 0 auto;
+
+    color: #475569;
+
+    font-size: 16px;
+
+    line-height: 1.8;
+}
+
+
+/* ======================================
+   FOOTER LINKS
+====================================== */
+
+.footer-links {
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    flex-wrap: wrap;
+
+    gap: 22px;
+}
+
+
+.footer-links a {
+
+    color: #2563eb;
+
+    text-decoration: none;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    transition: 0.3s ease;
+}
+
+
+.footer-links a:hover {
+
+    color: #0f172a;
+}
+
+
+/* ======================================
+   FOOTER BOTTOM
+====================================== */
+
+.footer-bottom {
+
+    margin-top: 30px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid rgba(15,23,42,0.06);
+
+    text-align: center;
+}
+
+
+.footer-bottom p {
+
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 14px;
+}
+
+/* ======================================
+   FORCE FOOTER FULL WIDTH
+====================================== */
+
+.footer {
+
+    width: 100% !important;
+
+    display: block !important;
+
+    clear: both !important;
+
+    position: relative !important;
+
+    left: 0 !important;
+
+    right: 0 !important;
+
+    margin-left: 0 !important;
+
+    margin-right: 0 !important;
+
+    z-index: 10;
+}
+
+
+.footer .container {
+
+    max-width: 1000px !important;
+
+    margin: 0 auto !important;
+
+    text-align: center !important;
+}s
+
+.footer{
+    flex: none !important;
+}

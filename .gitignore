@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 
+
 # Python
 __pycache__/
 *.py[cod]
@@ -24,5 +25,10 @@ env/
 raw_data/
 *.zip
 
+
 # Logs
 *.log
+
+# Local scratch scripts
+tmp_api_test.py
+temp_api_test.py
