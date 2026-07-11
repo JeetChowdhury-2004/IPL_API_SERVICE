@@ -1,8 +1,6 @@
 import sys
 from pathlib import Path
 
-import pandas as pd
-
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -13,8 +11,14 @@ if str(PROJECT_ROOT) not in sys.path:
 from database.database import get_connection
 
 
+def fetch_column(cursor, query):
+    cursor.execute(query)
+    return [row[0] for row in cursor.fetchall() if row[0] is not None]
+
+
 def load_available_data():
     conn = None
+    cursor = None
 
     empty_data = {
         "database_available": False,
@@ -29,51 +33,86 @@ def load_available_data():
 
     try:
         conn = get_connection()
+        cursor = conn.cursor()
 
-        matches_df = pd.read_sql(
+        teams = fetch_column(
+            cursor,
             """
-            SELECT
-                season,
-                city,
-                venue,
-                team1,
-                team2
+            SELECT DISTINCT team
+            FROM (
+                SELECT team1 AS team
+                FROM matches
+                WHERE team1 IS NOT NULL
+
+                UNION
+
+                SELECT team2 AS team
+                FROM matches
+                WHERE team2 IS NOT NULL
+            ) teams
+            ORDER BY team
+            """
+        )
+
+        seasons = fetch_column(
+            cursor,
+            """
+            SELECT DISTINCT season
             FROM matches
-            """,
-            conn
-        )
-
-        deliveries_df = pd.read_sql(
+            WHERE season IS NOT NULL
+            ORDER BY season
             """
-            SELECT
-                batter,
-                bowler
-            FROM deliveries
-            """,
-            conn
         )
 
-        teams = sorted(
-            set(matches_df["team1"].dropna().unique()).union(
-                set(matches_df["team2"].dropna().unique())
-            )
+        cities = fetch_column(
+            cursor,
+            """
+            SELECT DISTINCT city
+            FROM matches
+            WHERE city IS NOT NULL
+            ORDER BY city
+            """
+        )
+
+        venues = fetch_column(
+            cursor,
+            """
+            SELECT DISTINCT venue
+            FROM matches
+            WHERE venue IS NOT NULL
+            ORDER BY venue
+            """
+        )
+
+        batters = fetch_column(
+            cursor,
+            """
+            SELECT DISTINCT batter
+            FROM deliveries
+            WHERE batter IS NOT NULL
+            ORDER BY batter
+            """
+        )
+
+        bowlers = fetch_column(
+            cursor,
+            """
+            SELECT DISTINCT bowler
+            FROM deliveries
+            WHERE bowler IS NOT NULL
+            ORDER BY bowler
+            """
         )
 
         return {
             "database_available": True,
             "error_message": None,
             "teams": teams,
-            "seasons": sorted(
-                matches_df["season"].dropna().astype(int).unique().tolist()
-            ),
-            "cities": sorted(matches_df["city"].dropna().unique().tolist()),
-            "venues": sorted(matches_df["venue"].dropna().unique().tolist()),
-            "batters": sorted(
-                deliveries_df["batter"].dropna().unique().tolist()
-            ),
-            "bowlers": sorted(
-                deliveries_df["bowler"].dropna().unique().tolist()
-            )
+            "seasons": [int(season) for season in seasons],
+            "cities": cities,
+            "venues": venues,
+            "batters": batters,
+            "bowlers": bowlers
         }
 
     except Exception as exc:
@@ -81,6 +120,9 @@ def load_available_data():
         return empty_data
 
     finally:
+        if cursor:
+            cursor.close()
+
         if conn:
             conn.close()
 
