@@ -147,7 +147,13 @@ API_DOCS = {
             "route": "/batting/orange-cap-by-season",
             "method": "GET",
             "description": "Returns Orange Cap winners by season.",
-            "query_params": []
+            "query_params": [
+                {
+                    "name": "limit",
+                    "type": "integer",
+                    "required": False
+                }
+            ]
         },
 
         {
@@ -310,7 +316,13 @@ API_DOCS = {
             "route": "/bowling/purple-cap-by-season",
             "method": "GET",
             "description": "Returns Purple Cap winners by season.",
-            "query_params": []
+            "query_params": [
+                {
+                    "name": "limit",
+                    "type": "integer",
+                    "required": False
+                }
+            ]
         }
     ],
 
