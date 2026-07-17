@@ -191,16 +191,68 @@ def economy():
         SELECT
             d.bowler,
 
-            SUM(d.total_run) AS runs_conceded,
+            SUM(
 
-            COUNT(*) AS balls_bowled,
+                CASE
+
+                    WHEN d.extra_type LIKE '%%byes%%'
+                        OR d.extra_type LIKE '%%legbyes%%'
+                        OR d.extra_type LIKE '%%penalty%%'
+                    THEN d.batsman_run
+
+                    ELSE d.total_run
+
+                END
+
+            ) AS runs_conceded,
+
+            COUNT(
+
+                CASE
+
+                    WHEN d.extra_type IS NULL
+                        OR (
+                            d.extra_type NOT LIKE '%%wides%%'
+                            AND d.extra_type NOT LIKE '%%noballs%%'
+                        )
+                    THEN 1
+
+                END
+
+            ) AS balls_bowled,
 
             ROUND(
 
                 (
-                    SUM(d.total_run) * 6.0
+                    SUM(
+
+                        CASE
+
+                            WHEN d.extra_type LIKE '%%byes%%'
+                                OR d.extra_type LIKE '%%legbyes%%'
+                                OR d.extra_type LIKE '%%penalty%%'
+                            THEN d.batsman_run
+
+                            ELSE d.total_run
+
+                        END
+
+                    ) * 6.0
                 ) / NULLIF(
-                    COUNT(*),
+                    COUNT(
+
+                        CASE
+
+                            WHEN d.extra_type IS NULL
+                                OR (
+                                    d.extra_type NOT LIKE '%%wides%%'
+                                    AND d.extra_type NOT LIKE '%%noballs%%'
+                                )
+                            THEN 1
+
+                        END
+
+                    ),
                     0
                 ),
 
@@ -252,7 +304,17 @@ def economy():
 
         query += """
 
-            HAVING COUNT(*) >= 300
+            HAVING
+                COUNT(
+                    CASE
+                        WHEN d.extra_type IS NULL
+                            OR (
+                                d.extra_type NOT LIKE '%%wides%%'
+                                AND d.extra_type NOT LIKE '%%noballs%%'
+                            )
+                        THEN 1
+                    END
+                ) >= 300
 
         """
 
@@ -260,7 +322,17 @@ def economy():
 
         query += """
 
-            HAVING COUNT(*) >= 60
+            HAVING
+                COUNT(
+                    CASE
+                        WHEN d.extra_type IS NULL
+                            OR (
+                                d.extra_type NOT LIKE '%%wides%%'
+                                AND d.extra_type NOT LIKE '%%noballs%%'
+                            )
+                        THEN 1
+                    END
+                ) >= 60
 
         """
 
@@ -334,13 +406,39 @@ def bowling_strike_rate():
         SELECT
             d.bowler,
 
-            COUNT(*) AS balls_bowled,
+            COUNT(
+
+                CASE
+
+                    WHEN d.extra_type IS NULL
+                        OR (
+                            d.extra_type NOT LIKE '%%wides%%'
+                            AND d.extra_type NOT LIKE '%%noballs%%'
+                        )
+                    THEN 1
+
+                END
+
+            ) AS balls_bowled,
 
             COUNT(w.player_out) AS wickets,
 
             ROUND(
 
-                COUNT(*) * 1.0
+                COUNT(
+
+                    CASE
+
+                        WHEN d.extra_type IS NULL
+                            OR (
+                                d.extra_type NOT LIKE '%%wides%%'
+                                AND d.extra_type NOT LIKE '%%noballs%%'
+                            )
+                        THEN 1
+
+                    END
+
+                ) * 1.0
 
                 /
 
@@ -404,7 +502,16 @@ def bowling_strike_rate():
         query += """
 
             HAVING
-                COUNT(*) >= 300
+                COUNT(
+                    CASE
+                        WHEN d.extra_type IS NULL
+                            OR (
+                                d.extra_type NOT LIKE '%%wides%%'
+                                AND d.extra_type NOT LIKE '%%noballs%%'
+                            )
+                        THEN 1
+                    END
+                ) >= 300
                 AND COUNT(w.player_out) > 0
 
         """
@@ -414,7 +521,16 @@ def bowling_strike_rate():
         query += """
 
             HAVING
-                COUNT(*) >= 60
+                COUNT(
+                    CASE
+                        WHEN d.extra_type IS NULL
+                            OR (
+                                d.extra_type NOT LIKE '%%wides%%'
+                                AND d.extra_type NOT LIKE '%%noballs%%'
+                            )
+                        THEN 1
+                    END
+                ) >= 60
                 AND COUNT(w.player_out) > 0
 
         """
@@ -489,13 +605,39 @@ def bowling_average():
         SELECT
             d.bowler,
 
-            SUM(d.total_run) AS runs_conceded,
+            SUM(
+
+                CASE
+
+                    WHEN d.extra_type LIKE '%%byes%%'
+                        OR d.extra_type LIKE '%%legbyes%%'
+                        OR d.extra_type LIKE '%%penalty%%'
+                    THEN d.batsman_run
+
+                    ELSE d.total_run
+
+                END
+
+            ) AS runs_conceded,
 
             COUNT(w.player_out) AS wickets,
 
             ROUND(
 
-                SUM(d.total_run) * 1.0
+                SUM(
+
+                    CASE
+
+                        WHEN d.extra_type LIKE '%%byes%%'
+                            OR d.extra_type LIKE '%%legbyes%%'
+                            OR d.extra_type LIKE '%%penalty%%'
+                        THEN d.batsman_run
+
+                        ELSE d.total_run
+
+                    END
+
+                ) * 1.0
 
                 /
 
@@ -559,7 +701,16 @@ def bowling_average():
         query += """
 
             HAVING
-                COUNT(*) >= 300
+                COUNT(
+                    CASE
+                        WHEN d.extra_type IS NULL
+                            OR (
+                                d.extra_type NOT LIKE '%%wides%%'
+                                AND d.extra_type NOT LIKE '%%noballs%%'
+                            )
+                        THEN 1
+                    END
+                ) >= 300
                 AND COUNT(w.player_out) > 0
 
         """
@@ -569,7 +720,16 @@ def bowling_average():
         query += """
 
             HAVING
-                COUNT(*) >= 60
+                COUNT(
+                    CASE
+                        WHEN d.extra_type IS NULL
+                            OR (
+                                d.extra_type NOT LIKE '%%wides%%'
+                                AND d.extra_type NOT LIKE '%%noballs%%'
+                            )
+                        THEN 1
+                    END
+                ) >= 60
                 AND COUNT(w.player_out) > 0
 
         """
@@ -648,7 +808,20 @@ def best_figures():
 
             m.season,
 
-            SUM(d.total_run) AS runs_conceded,
+            SUM(
+
+                CASE
+
+                    WHEN d.extra_type LIKE '%%byes%%'
+                        OR d.extra_type LIKE '%%legbyes%%'
+                        OR d.extra_type LIKE '%%penalty%%'
+                    THEN d.batsman_run
+
+                    ELSE d.total_run
+
+                END
+
+            ) AS runs_conceded,
 
             COUNT(w.player_out) AS wickets
 
@@ -756,99 +929,30 @@ def best_figures():
     })
 
 # =========================================
-# PURPLE CAP
-# =========================================
-
-@bowling_bp.route("/bowling/purple-cap")
-def purple_cap():
-
-    season = request.args.get(
-
-        "season",
-
-        type=int
-    )
-
-    query = """
-
-        SELECT
-            d.bowler,
-
-            COUNT(w.player_out) AS wickets
-
-        FROM deliveries d
-
-        JOIN wickets w
-
-        ON d.delivery_key = w.delivery_key
-
-        JOIN matches m
-
-        ON d.match_id = m.match_id
-
-        WHERE w.dismissal_kind NOT IN %s
-
-    """
-
-    values = [INVALID_DISMISSALS]
-
-    if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
-        values.append(season)
-
-    query += """
-
-        GROUP BY d.bowler
-
-        ORDER BY wickets DESC
-
-        LIMIT 1
-
-    """
-
-    rows = execute_query(
-
-        query,
-
-        tuple(values)
-    )
-
-    if not rows:
-
-        return error_response(
-
-            "No data found",
-
-            404
-        )
-
-    row = rows[0]
-
-    response = {
-
-        "player": row[0],
-
-        "wickets": int(row[1])
-    }
-
-    if season:
-
-        response["season"] = season
-
-    return success_response(response)
-
-# =========================================
 # PURPLE CAP BY SEASON
 # =========================================
 
 @bowling_bp.route("/bowling/purple-cap-by-season")
 def purple_cap_by_season():
+
+    season_count_query = """
+
+        SELECT COUNT(DISTINCT season)
+
+        FROM matches
+
+    """
+
+    season_count_rows = execute_query(season_count_query)
+
+    season_count = int(season_count_rows[0][0]) if season_count_rows else 10
+
+    limit, offset = get_pagination(
+
+        default_limit=season_count,
+
+        max_limit=season_count
+    )
 
     query = """
 
@@ -924,14 +1028,12 @@ def purple_cap_by_season():
 
         WHERE rank = 1
 
-        ORDER BY season ASC
+        ORDER BY season DESC
 
         LIMIT %s
         OFFSET %s
 
     """
-
-    limit, offset = get_pagination()
 
     rows = execute_query(query, (limit, offset))
 

@@ -38,6 +38,24 @@ from team_name_normalization import (
     normalize_team_name
 )
 
+
+TEAM_NAME_CASE_SQL = """
+    CASE
+        WHEN {column} IN ('Delhi Daredevils', 'Delhi Capitals')
+        THEN 'Delhi Capitals'
+        WHEN {column} IN ('Kings XI Punjab', 'Punjab Kings')
+        THEN 'Punjab Kings'
+        WHEN {column} IN ('Rising Pune Supergiant', 'Rising Pune Supergiants')
+        THEN 'Rising Pune Supergiants'
+        ELSE {column}
+    END
+"""
+
+
+def normalized_team_sql(column):
+
+    return TEAM_NAME_CASE_SQL.format(column=column)
+
 # =========================================
 # BLUEPRINT
 # =========================================
@@ -605,10 +623,12 @@ def get_all_title_winners():
 @matches_bp.route("/matches/title-counts")
 def title_counts():
 
-    query = """
+    winner_team = normalized_team_sql("winner")
+
+    query = f"""
 
         SELECT
-            winner,
+            {winner_team} AS team,
             COUNT(*) AS titles
 
         FROM matches
@@ -619,10 +639,10 @@ def title_counts():
 
         AND winner IS NOT NULL
 
-        GROUP BY winner
+        GROUP BY team
 
         ORDER BY titles DESC,
-                 winner ASC
+                 team ASC
 
     """
 
@@ -655,17 +675,23 @@ def title_counts():
 @matches_bp.route("/matches/most-successful-team")
 def most_successful_team():
 
-    query = """
+    winner_team = normalized_team_sql("winner")
+
+    team1_name = normalized_team_sql("team1")
+
+    team2_name = normalized_team_sql("team2")
+
+    query = f"""
 
         SELECT
-            winner,
+            {winner_team} AS team,
             COUNT(*) AS wins
 
         FROM matches
 
         WHERE winner IS NOT NULL
 
-        GROUP BY winner
+        GROUP BY team
 
         ORDER BY wins DESC
 
@@ -686,14 +712,16 @@ def most_successful_team():
 
     total_wins = rows[0][1]
 
-    matches_query = """
+    matches_query = f"""
 
-        SELECT COUNT(*)
+        SELECT
+            COUNT(*) AS total_matches,
+            COUNT(*) FILTER (WHERE winner IS NOT NULL) AS decided_matches
 
         FROM matches
 
-        WHERE team1 = %s
-           OR team2 = %s
+        WHERE {team1_name} = %s
+           OR {team2_name} = %s
 
     """
 
@@ -709,11 +737,13 @@ def most_successful_team():
 
     total_matches = match_rows[0][0]
 
-    losses = total_matches - total_wins
+    decided_matches = match_rows[0][1]
+
+    losses = decided_matches - total_wins
 
     win_percentage = (
 
-        total_wins / total_matches
+        total_wins / decided_matches
 
     ) * 100
 
@@ -820,35 +850,63 @@ def highest_run_chases():
 
     query = """
 
+        WITH innings_totals AS (
+
+            SELECT
+                d.match_id,
+                d.innings,
+                d.batting_team,
+                SUM(d.total_run) AS total_runs
+
+            FROM deliveries d
+
+            WHERE d.innings IN (1, 2)
+
+            GROUP BY
+                d.match_id,
+                d.innings,
+                d.batting_team
+        )
+
         SELECT
 
-            season,
+            m.season,
 
-            team2 AS chasing_team,
+            i2.batting_team AS chasing_team,
 
-            team1 AS defending_team,
+            i1.batting_team AS defending_team,
 
-            venue,
+            m.venue,
 
-            city,
+            m.city,
 
-            target_runs,
+            i1.total_runs + 1 AS target_runs,
 
-            winner,
+            m.winner,
 
-            result_margin,
+            m.result_margin,
 
-            match_date
+            m.match_date
 
-        FROM matches
+        FROM innings_totals i1
+
+        JOIN innings_totals i2
+
+        ON i1.match_id = i2.match_id
+
+        JOIN matches m
+
+        ON m.match_id = i1.match_id
 
         WHERE
 
-            result_type = 'wickets'
+            i1.innings = 1
 
-            AND winner = team2
+            AND i2.innings = 2
 
-            AND target_runs IS NOT NULL
+            AND m.result_type = 'wickets'
+
+            AND m.winner = i2.batting_team
 
     """
 
@@ -862,7 +920,7 @@ def highest_run_chases():
 
         query += """
 
-            AND season = %s
+            AND m.season = %s
 
         """
 
@@ -872,7 +930,7 @@ def highest_run_chases():
 
         query += """
 
-            AND team2 = %s
+            AND i2.batting_team = %s
 
         """
 
@@ -1880,6 +1938,10 @@ def highest_successful_chases():
 
     team = request.args.get("team")
 
+    if team:
+
+        team = normalize_team_name(team)
+
     query = """
 
         WITH innings_totals AS (
@@ -1899,6 +1961,11 @@ def highest_successful_chases():
                     DISTINCT CASE
 
                         WHEN w.player_out IS NOT NULL
+                            AND w.dismissal_kind NOT IN (
+                                'retired hurt',
+                                'retired out',
+                                'obstructing the field'
+                            )
                         THEN w.player_out
 
                     END

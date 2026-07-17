@@ -99,7 +99,20 @@ def batter_vs_bowler():
 
             d.bowler,
 
-            COUNT(*) AS balls,
+            COUNT(
+
+                CASE
+
+                    WHEN d.extra_type IS NULL
+                        OR (
+                            d.extra_type NOT LIKE '%%wides%%'
+                            AND d.extra_type NOT LIKE '%%noballs%%'
+                        )
+                    THEN 1
+
+                END
+
+            ) AS balls,
 
             SUM(d.batsman_run) AS runs,
 
@@ -114,7 +127,20 @@ def batter_vs_bowler():
                 /
 
                 NULLIF(
-                    COUNT(*),
+                    COUNT(
+
+                        CASE
+
+                            WHEN d.extra_type IS NULL
+                                OR (
+                                    d.extra_type NOT LIKE '%%wides%%'
+                                    AND d.extra_type NOT LIKE '%%noballs%%'
+                                )
+                            THEN 1
+
+                        END
+
+                    ),
                     0
                 ),
 
@@ -278,7 +304,20 @@ def batter_vs_team():
 
             d.bowling_team,
 
-            COUNT(*) AS balls,
+            COUNT(
+
+                CASE
+
+                    WHEN d.extra_type IS NULL
+                        OR (
+                            d.extra_type NOT LIKE '%%wides%%'
+                            AND d.extra_type NOT LIKE '%%noballs%%'
+                        )
+                    THEN 1
+
+                END
+
+            ) AS balls,
 
             SUM(d.batsman_run) AS runs,
 
@@ -293,7 +332,20 @@ def batter_vs_team():
                 /
 
                 NULLIF(
-                    COUNT(*),
+                    COUNT(
+
+                        CASE
+
+                            WHEN d.extra_type IS NULL
+                                OR (
+                                    d.extra_type NOT LIKE '%%wides%%'
+                                    AND d.extra_type NOT LIKE '%%noballs%%'
+                                )
+                            THEN 1
+
+                        END
+
+                    ),
                     0
                 ),
 
@@ -483,22 +535,74 @@ def bowler_vs_team():
 
             d.batting_team,
 
-            COUNT(*) AS balls,
+            COUNT(
 
-            SUM(d.total_run) AS runs_conceded,
+                CASE
+
+                    WHEN d.extra_type IS NULL
+                        OR (
+                            d.extra_type NOT LIKE '%%wides%%'
+                            AND d.extra_type NOT LIKE '%%noballs%%'
+                        )
+                    THEN 1
+
+                END
+
+            ) AS balls,
+
+            SUM(
+
+                CASE
+
+                    WHEN d.extra_type LIKE '%%byes%%'
+                        OR d.extra_type LIKE '%%legbyes%%'
+                        OR d.extra_type LIKE '%%penalty%%'
+                    THEN d.batsman_run
+
+                    ELSE d.total_run
+
+                END
+
+            ) AS runs_conceded,
 
             COUNT(w.player_out) AS wickets,
 
             ROUND(
 
                 (
-                    SUM(d.total_run) * 6.0
+                    SUM(
+
+                        CASE
+
+                            WHEN d.extra_type LIKE '%%byes%%'
+                                OR d.extra_type LIKE '%%legbyes%%'
+                                OR d.extra_type LIKE '%%penalty%%'
+                            THEN d.batsman_run
+
+                            ELSE d.total_run
+
+                        END
+
+                    ) * 6.0
                 )
 
                 /
 
                 NULLIF(
-                    COUNT(*),
+                    COUNT(
+
+                        CASE
+
+                            WHEN d.extra_type IS NULL
+                                OR (
+                                    d.extra_type NOT LIKE '%%wides%%'
+                                    AND d.extra_type NOT LIKE '%%noballs%%'
+                                )
+                            THEN 1
+
+                        END
+
+                    ),
                     0
                 ),
 
@@ -508,7 +612,20 @@ def bowler_vs_team():
 
             ROUND(
 
-                COUNT(*) * 1.0
+                COUNT(
+
+                    CASE
+
+                        WHEN d.extra_type IS NULL
+                            OR (
+                                d.extra_type NOT LIKE '%%wides%%'
+                                AND d.extra_type NOT LIKE '%%noballs%%'
+                            )
+                        THEN 1
+
+                    END
+
+                ) * 1.0
 
                 /
 
@@ -524,7 +641,20 @@ def bowler_vs_team():
             ROUND(
 
                 (
-                    SUM(d.total_run) * 1.0
+                    SUM(
+
+                        CASE
+
+                            WHEN d.extra_type LIKE '%%byes%%'
+                                OR d.extra_type LIKE '%%legbyes%%'
+                                OR d.extra_type LIKE '%%penalty%%'
+                            THEN d.batsman_run
+
+                            ELSE d.total_run
+
+                        END
+
+                    ) * 1.0
                 )
 
                 /

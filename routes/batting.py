@@ -351,14 +351,40 @@ def strike_rate():
 
             SUM(d.batsman_run) AS runs,
 
-            COUNT(*) AS balls,
+            COUNT(
+
+                CASE
+
+                    WHEN d.extra_type IS NULL
+                        OR (
+                            d.extra_type NOT LIKE '%%wides%%'
+                            AND d.extra_type NOT LIKE '%%noballs%%'
+                        )
+                    THEN 1
+
+                END
+
+            ) AS balls,
 
             ROUND(
 
                 (
                     SUM(d.batsman_run) * 100.0
                 ) / NULLIF(
-                    COUNT(*),
+                    COUNT(
+
+                        CASE
+
+                            WHEN d.extra_type IS NULL
+                                OR (
+                                    d.extra_type NOT LIKE '%%wides%%'
+                                    AND d.extra_type NOT LIKE '%%noballs%%'
+                                )
+                            THEN 1
+
+                        END
+
+                    ),
                     0
                 ),
 
@@ -412,7 +438,17 @@ def strike_rate():
 
             query += """
 
-                HAVING COUNT(*) >= 500
+                HAVING
+                    COUNT(
+                        CASE
+                            WHEN d.extra_type IS NULL
+                                OR (
+                                    d.extra_type NOT LIKE '%%wides%%'
+                                    AND d.extra_type NOT LIKE '%%noballs%%'
+                                )
+                            THEN 1
+                        END
+                    ) >= 500
 
             """
 
@@ -420,7 +456,17 @@ def strike_rate():
 
             query += """
 
-                HAVING COUNT(*) >= 100
+                HAVING
+                    COUNT(
+                        CASE
+                            WHEN d.extra_type IS NULL
+                                OR (
+                                    d.extra_type NOT LIKE '%%wides%%'
+                                    AND d.extra_type NOT LIKE '%%noballs%%'
+                                )
+                            THEN 1
+                        END
+                    ) >= 100
 
             """
 
@@ -592,7 +638,17 @@ def batting_average():
 
             query += """
 
-                HAVING COUNT(*) >= 500
+                HAVING
+                    COUNT(
+                        CASE
+                            WHEN d.extra_type IS NULL
+                                OR (
+                                    d.extra_type NOT LIKE '%%wides%%'
+                                    AND d.extra_type NOT LIKE '%%noballs%%'
+                                )
+                            THEN 1
+                        END
+                    ) >= 500
 
             """
 
@@ -600,7 +656,17 @@ def batting_average():
 
             query += """
 
-                HAVING COUNT(*) >= 100
+                HAVING
+                    COUNT(
+                        CASE
+                            WHEN d.extra_type IS NULL
+                                OR (
+                                    d.extra_type NOT LIKE '%%wides%%'
+                                    AND d.extra_type NOT LIKE '%%noballs%%'
+                                )
+                            THEN 1
+                        END
+                    ) >= 100
 
             """
 
@@ -725,6 +791,8 @@ def most_sixes():
 
         WHERE d.batsman_run = 6
 
+            AND COALESCE(d.non_boundary, FALSE) = FALSE
+
     """
 
     values = []
@@ -830,6 +898,8 @@ def most_fours():
 
         WHERE d.batsman_run = 4
 
+            AND COALESCE(d.non_boundary, FALSE) = FALSE
+
     """
 
     values = []
@@ -912,6 +982,25 @@ def most_fours():
 @batting_bp.route("/batting/orange-cap-by-season")
 def orange_cap_by_season():
 
+    season_count_query = """
+
+        SELECT COUNT(DISTINCT season)
+
+        FROM matches
+
+    """
+
+    season_count_rows = execute_query(season_count_query)
+
+    season_count = int(season_count_rows[0][0]) if season_count_rows else 10
+
+    limit, offset = get_pagination(
+
+        default_limit=season_count,
+
+        max_limit=season_count
+    )
+
     query = """
 
         WITH season_runs AS (
@@ -963,14 +1052,12 @@ def orange_cap_by_season():
 
         WHERE rank = 1
 
-        ORDER BY season ASC
+        ORDER BY season DESC
 
         LIMIT %s
         OFFSET %s
 
     """
-
-    limit, offset = get_pagination()
 
     rows = execute_query(query, (limit, offset))
 

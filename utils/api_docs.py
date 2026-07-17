@@ -305,22 +305,6 @@ API_DOCS = {
         },
 
         {
-            "id": "purple-cap",
-            "title": "Purple Cap",
-            "route": "/bowling/purple-cap",
-            "method": "GET",
-            "description": "Returns Purple Cap winner.",
-            "query_params": [
-                {
-                    "name": "season",
-                    "type": "integer",
-                    "required": False,
-                    "allowed_values": SEASONS
-                }
-            ]
-        },
-
-        {
             "id": "purple-cap-by-season",
             "title": "Purple Cap By Season",
             "route": "/bowling/purple-cap-by-season",

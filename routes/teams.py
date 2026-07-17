@@ -21,6 +21,23 @@ DEFAULT_TEAM_SEARCH_LIMIT = 10
 
 MAX_TEAM_SEARCH_LIMIT = 50
 
+TEAM_NAME_CASE_SQL = """
+    CASE
+        WHEN {column} IN ('Delhi Daredevils', 'Delhi Capitals')
+        THEN 'Delhi Capitals'
+        WHEN {column} IN ('Kings XI Punjab', 'Punjab Kings')
+        THEN 'Punjab Kings'
+        WHEN {column} IN ('Rising Pune Supergiant', 'Rising Pune Supergiants')
+        THEN 'Rising Pune Supergiants'
+        ELSE {column}
+    END
+"""
+
+
+def normalized_team_sql(column):
+
+    return TEAM_NAME_CASE_SQL.format(column=column)
+
 
 # =========================================
 # BLUEPRINT
@@ -191,11 +208,13 @@ def most_wins():
         type=int
     )
 
-    query = """
+    winner_team = normalized_team_sql("winner")
+
+    query = f"""
 
         SELECT
 
-            winner,
+            {winner_team} AS team,
 
             COUNT(*) AS wins
 
@@ -221,7 +240,7 @@ def most_wins():
 
     query += """
 
-        GROUP BY winner
+        GROUP BY team
 
         ORDER BY wins DESC
 
@@ -289,7 +308,13 @@ def win_percentage():
 
         team = normalize_team_name(team)
 
-    query = """
+    team1_name = normalized_team_sql("team1")
+
+    team2_name = normalized_team_sql("team2")
+
+    winner_name = normalized_team_sql("winner")
+
+    query = f"""
 
         SELECT
 
@@ -320,7 +345,7 @@ def win_percentage():
 
             SELECT
 
-                team1 AS team_name,
+                {team1_name} AS team_name,
 
                 COUNT(*) AS matches_played,
 
@@ -328,7 +353,7 @@ def win_percentage():
 
                     CASE
 
-                        WHEN winner = team1
+                        WHEN {winner_name} = {team1_name}
                         THEN 1
 
                         ELSE 0
@@ -363,7 +388,7 @@ def win_percentage():
 
             SELECT
 
-                team2 AS team_name,
+                {team2_name} AS team_name,
 
                 COUNT(*) AS matches_played,
 
@@ -371,7 +396,7 @@ def win_percentage():
 
                     CASE
 
-                        WHEN winner = team2
+                        WHEN {winner_name} = {team2_name}
                         THEN 1
 
                         ELSE 0
@@ -512,7 +537,13 @@ def playoff_record():
 
         team = normalize_team_name(team)
 
-    query = """
+    team1_name = normalized_team_sql("team1")
+
+    team2_name = normalized_team_sql("team2")
+
+    winner_name = normalized_team_sql("winner")
+
+    query = f"""
 
         SELECT
 
@@ -524,7 +555,7 @@ def playoff_record():
 
                 CASE
 
-                    WHEN winner = team_name
+                    WHEN normalized_winner = team_name
                     THEN 1
 
                     ELSE 0
@@ -540,7 +571,7 @@ def playoff_record():
 
                         CASE
 
-                            WHEN winner = team_name
+                            WHEN normalized_winner = team_name
                             THEN 1
 
                             ELSE 0
@@ -565,11 +596,11 @@ def playoff_record():
 
             SELECT
 
-                team1 AS team_name,
+                {team1_name} AS team_name,
 
                 season,
 
-                winner
+                {winner_name} AS normalized_winner
 
             FROM matches
 
@@ -579,11 +610,11 @@ def playoff_record():
 
             SELECT
 
-                team2 AS team_name,
+                {team2_name} AS team_name,
 
                 season,
 
-                winner
+                {winner_name} AS normalized_winner
 
             FROM matches
 
@@ -709,7 +740,13 @@ def finals_record():
 
         team = normalize_team_name(team)
 
-    query = """
+    team1_name = normalized_team_sql("team1")
+
+    team2_name = normalized_team_sql("team2")
+
+    winner_name = normalized_team_sql("winner")
+
+    query = f"""
 
         SELECT
 
@@ -764,35 +801,9 @@ def finals_record():
 
                 season,
 
-                CASE
+                {team1_name} AS team_name,
 
-                    WHEN team1 = 'Royal Challengers Bangalore'
-                    THEN 'Royal Challengers Bengaluru'
-
-                    WHEN team1 = 'Kings XI Punjab'
-                    THEN 'Punjab Kings'
-
-                    WHEN team1 = 'Delhi Daredevils'
-                    THEN 'Delhi Capitals'
-
-                    ELSE team1
-
-                END AS team_name,
-
-                CASE
-
-                    WHEN winner = 'Royal Challengers Bangalore'
-                    THEN 'Royal Challengers Bengaluru'
-
-                    WHEN winner = 'Kings XI Punjab'
-                    THEN 'Punjab Kings'
-
-                    WHEN winner = 'Delhi Daredevils'
-                    THEN 'Delhi Capitals'
-
-                    ELSE winner
-
-                END AS normalized_winner
+                {winner_name} AS normalized_winner
 
             FROM matches
 
@@ -806,35 +817,9 @@ def finals_record():
 
                 season,
 
-                CASE
+                {team2_name} AS team_name,
 
-                    WHEN team2 = 'Royal Challengers Bangalore'
-                    THEN 'Royal Challengers Bengaluru'
-
-                    WHEN team2 = 'Kings XI Punjab'
-                    THEN 'Punjab Kings'
-
-                    WHEN team2 = 'Delhi Daredevils'
-                    THEN 'Delhi Capitals'
-
-                    ELSE team2
-
-                END AS team_name,
-
-                CASE
-
-                    WHEN winner = 'Royal Challengers Bangalore'
-                    THEN 'Royal Challengers Bengaluru'
-
-                    WHEN winner = 'Kings XI Punjab'
-                    THEN 'Punjab Kings'
-
-                    WHEN winner = 'Delhi Daredevils'
-                    THEN 'Delhi Capitals'
-
-                    ELSE winner
-
-                END AS normalized_winner
+                {winner_name} AS normalized_winner
 
             FROM matches
 
@@ -949,7 +934,23 @@ def chasing_record():
     # BASE QUERY
     # ====================================
 
-    query = """
+    batting_team = normalized_team_sql("batting_team")
+
+    winner_name = normalized_team_sql("winner")
+
+    query = f"""
+
+        WITH innings_teams AS (
+
+            SELECT DISTINCT
+                d.match_id,
+                d.innings,
+                {batting_team} AS batting_team
+
+            FROM deliveries d
+
+            WHERE d.innings IN (1, 2)
+        )
 
         SELECT
 
@@ -961,7 +962,7 @@ def chasing_record():
 
                 CASE
 
-                    WHEN winner = chasing_team
+                    WHEN normalized_winner = chasing_team
                     THEN 1
 
                     ELSE 0
@@ -974,8 +975,8 @@ def chasing_record():
 
                 CASE
 
-                    WHEN winner IS NOT NULL
-                    AND winner != chasing_team
+                    WHEN normalized_winner IS NOT NULL
+                    AND normalized_winner != chasing_team
                     THEN 1
 
                     ELSE 0
@@ -991,7 +992,7 @@ def chasing_record():
 
                         CASE
 
-                            WHEN winner = chasing_team
+                            WHEN normalized_winner = chasing_team
                             THEN 1
 
                             ELSE 0
@@ -1016,15 +1017,21 @@ def chasing_record():
 
             SELECT
 
-                team2 AS chasing_team,
+                i2.batting_team AS chasing_team,
 
-                winner,
+                {winner_name} AS normalized_winner,
 
-                season
+                m.season
 
-            FROM matches
+            FROM matches m
 
-            WHERE target_runs IS NOT NULL
+            JOIN innings_teams i2
+
+            ON m.match_id = i2.match_id
+
+            WHERE m.target_runs IS NOT NULL
+
+            AND i2.innings = 2
 
         ) AS chasing_matches
 
@@ -1191,7 +1198,23 @@ def defending_record():
     # BASE QUERY
     # ====================================
 
-    query = """
+    batting_team = normalized_team_sql("batting_team")
+
+    winner_name = normalized_team_sql("winner")
+
+    query = f"""
+
+        WITH innings_teams AS (
+
+            SELECT DISTINCT
+                d.match_id,
+                d.innings,
+                {batting_team} AS batting_team
+
+            FROM deliveries d
+
+            WHERE d.innings IN (1, 2)
+        )
 
         SELECT
 
@@ -1203,7 +1226,7 @@ def defending_record():
 
                 CASE
 
-                    WHEN winner = defending_team
+                    WHEN normalized_winner = defending_team
                     THEN 1
 
                     ELSE 0
@@ -1216,8 +1239,8 @@ def defending_record():
 
                 CASE
 
-                    WHEN winner IS NOT NULL
-                    AND winner != defending_team
+                    WHEN normalized_winner IS NOT NULL
+                    AND normalized_winner != defending_team
                     THEN 1
 
                     ELSE 0
@@ -1233,7 +1256,7 @@ def defending_record():
 
                         CASE
 
-                            WHEN winner = defending_team
+                            WHEN normalized_winner = defending_team
                             THEN 1
 
                             ELSE 0
@@ -1258,15 +1281,21 @@ def defending_record():
 
             SELECT
 
-                team1 AS defending_team,
+                i1.batting_team AS defending_team,
 
-                winner,
+                {winner_name} AS normalized_winner,
 
-                season
+                m.season
 
-            FROM matches
+            FROM matches m
 
-            WHERE target_runs IS NOT NULL
+            JOIN innings_teams i1
+
+            ON m.match_id = i1.match_id
+
+            WHERE m.target_runs IS NOT NULL
+
+            AND i1.innings = 1
 
         ) AS defending_matches
 
