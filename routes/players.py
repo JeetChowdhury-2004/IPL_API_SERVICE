@@ -39,6 +39,13 @@ def normalize_player(name):
         return matches[0]
     return name
 
+
+def normalize_player_filter(player):
+    if not player:
+        return player
+
+    return normalize_player(player.strip())
+
 # =========================================
 # INVALID DISMISSALS
 # =========================================
@@ -48,7 +55,10 @@ INVALID_DISMISSALS = (
     'run out',
     'retired hurt',
     'retired out',
-    'obstructing the field'
+    'obstructing the field',
+    'hit the ball twice',
+    'handled the ball',
+    'timed out'
 )
 
 BATTING_NOT_OUT_DISMISSALS = (
@@ -286,8 +296,7 @@ def player_summary():
     # MATCHES PLAYED
     # ====================================
 
-    # Normalize player using available data
-    player = normalize_player(player)
+    player = normalize_player_filter(player)
 
     matches_query = """
 
@@ -683,7 +692,7 @@ def player_summary():
 @players_bp.route("/players/player-of-the-match")
 def player_of_the_match():
 
-    player = request.args.get("player")
+    player = normalize_player_filter(request.args.get("player"))
 
     season = request.args.get(
 
@@ -795,8 +804,7 @@ def player_career_span():
             400
         )
 
-    # Normalize player using available data
-    player = normalize_player(player)
+    player = normalize_player_filter(player)
 
     query = """
 
@@ -864,301 +872,187 @@ def player_career_span():
 # BEST ALL-ROUNDERS
 # =========================================
 
+
 @players_bp.route("/players/best-all-rounders")
 def best_all_rounders():
+    season = request.args.get("season", type=int)
+    player = normalize_player_filter(request.args.get("player"))
 
-    season = request.args.get(
+    min_runs = 100 if season else 500
+    min_wickets = 5 if season else 20
+    min_batting_average = 10 if season else 20
+    max_bowling_average = 60 if season else 40
 
-        "season",
-
-        type=int
-    )
-
-    player = request.args.get("player")
-
+    # REWRITTEN WITH SEPARATE CTEs TO AVOID ROW MULTIPLICATION
     query = """
-
-        SELECT
-
-            batting.player,
-
-            batting.runs,
-
-            batting.batting_strike_rate,
-
-            bowling.wickets,
-
-            bowling.economy,
-
-            ROUND(
-
-                (
-                    batting.runs * 1.0
-                )
-
-                /
-
-                NULLIF(
-                    bowling.wickets,
-                    0
-                ),
-
-                2
-
-            ) AS all_rounder_index
-
-        FROM (
-
+        WITH batting_stats AS (
             SELECT
-
                 d.batter AS player,
-
                 SUM(d.batsman_run) AS runs,
-
                 ROUND(
-
-                    (
-                        SUM(d.batsman_run) * 100.0
-                    )
-
-                    /
-
-                    NULLIF(
+                    (SUM(d.batsman_run) * 100.0) / NULLIF(
                         COUNT(
-
                             CASE
-
-                                WHEN d.extra_type IS NULL
-                                    OR (
-                                        d.extra_type NOT LIKE '%%wides%%'
-                                        AND d.extra_type NOT LIKE '%%noballs%%'
-                                    )
+                                WHEN d.extra_type IS NULL 
+                                  OR (d.extra_type NOT LIKE '%%wides%%' AND d.extra_type NOT LIKE '%%noballs%%')
                                 THEN 1
-
                             END
-
                         ),
                         0
                     ),
-
                     2
-
-                ) AS batting_strike_rate
-
+                ) AS batting_strike_rate,
+                ROUND(
+                    SUM(d.batsman_run) * 1.0 / NULLIF(
+                        COUNT(
+                            DISTINCT CASE
+                                WHEN w.dismissal_kind NOT IN %s
+                                THEN w.delivery_key
+                            END
+                        ),
+                        0
+                    ),
+                    2
+                ) AS batting_average
             FROM deliveries d
-
-            JOIN matches m
-
-            ON d.match_id = m.match_id
-
+            LEFT JOIN wickets w 
+              ON d.delivery_key = w.delivery_key 
+              AND d.batter = w.player_out
+            JOIN matches m 
+              ON d.match_id = m.match_id
             WHERE 1=1
-
     """
 
-    values = []
+    values = [BATTING_NOT_OUT_DISMISSALS]
 
     if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
+        query += " AND m.season = %s "
         values.append(season)
 
     if player:
-
-        query += """
-
-            AND d.batter ILIKE %s
-
-        """
-
+        query += " AND d.batter ILIKE %s "
         values.append(player)
 
     query += """
-
             GROUP BY d.batter
-
-        ) AS batting
-
-        JOIN (
-
+        ),
+        bowling_stats AS (
             SELECT
-
                 d.bowler AS player,
-
                 COUNT(
-
-                    CASE
-
+                    DISTINCT CASE
                         WHEN w.dismissal_kind NOT IN %s
-
-                        THEN w.player_out
-
+                        THEN w.delivery_key
                     END
-
                 ) AS wickets,
-
                 ROUND(
-
-                    (
-                        SUM(
-
-                            CASE
-
-                                WHEN d.extra_type LIKE '%%byes%%'
-                                    OR d.extra_type LIKE '%%legbyes%%'
-                                    OR d.extra_type LIKE '%%penalty%%'
-                                THEN d.batsman_run
-
-                                ELSE d.total_run
-
-                            END
-
-                        ) * 6.0
-                    )
-
-                    /
-
-                    NULLIF(
+                    (SUM(
+                        CASE
+                            WHEN d.extra_type LIKE '%%byes%%' OR d.extra_type LIKE '%%legbyes%%'
+                            THEN d.batsman_run
+                            ELSE d.total_run
+                        END
+                    ) * 6.0) / NULLIF(
                         COUNT(
-
                             CASE
-
-                                WHEN d.extra_type IS NULL
-                                    OR (
-                                        d.extra_type NOT LIKE '%%wides%%'
-                                        AND d.extra_type NOT LIKE '%%noballs%%'
-                                    )
+                                WHEN d.extra_type IS NULL 
+                                  OR (d.extra_type NOT LIKE '%%wides%%' AND d.extra_type NOT LIKE '%%noballs%%')
                                 THEN 1
-
                             END
-
                         ),
                         0
                     ),
-
                     2
-
-                ) AS economy
-
+                ) AS economy,
+                ROUND(
+                    SUM(
+                        CASE
+                            WHEN d.extra_type LIKE '%%byes%%' OR d.extra_type LIKE '%%legbyes%%'
+                            THEN d.batsman_run
+                            ELSE d.total_run
+                        END
+                    ) * 1.0 / NULLIF(
+                        COUNT(
+                            DISTINCT CASE
+                                WHEN w.dismissal_kind NOT IN %s
+                                THEN w.delivery_key
+                            END
+                        ),
+                        0
+                    ),
+                    2
+                ) AS bowling_average
             FROM deliveries d
-
-            LEFT JOIN wickets w
-
-            ON d.delivery_key = w.delivery_key
-
-            JOIN matches m
-
-            ON d.match_id = m.match_id
-
+            LEFT JOIN wickets w 
+              ON d.delivery_key = w.delivery_key
+              AND d.bowler = w.bowler
+            JOIN matches m 
+              ON d.match_id = m.match_id
             WHERE 1=1
-
     """
 
+    values.append(INVALID_DISMISSALS)
+    values.append(INVALID_DISMISSALS)
+
     if season:
-
-        query += """
-
-            AND m.season = %s
-
-        """
-
+        query += " AND m.season = %s "
         values.append(season)
 
     if player:
-
-        query += """
-
-            AND d.bowler ILIKE %s
-
-        """
-
+        query += " AND d.bowler ILIKE %s "
         values.append(player)
+
+    query += """
+            GROUP BY d.bowler
+        )
+        SELECT
+            b.player,
+            b.runs,
+            b.batting_strike_rate,
+            b.batting_average,
+            bo.wickets,
+            bo.economy,
+            bo.bowling_average,
+            ROUND(
+                (b.batting_average * 1.0) / NULLIF(bo.bowling_average, 0),
+                2
+            ) AS all_rounder_index
+        FROM batting_stats b
+        JOIN bowling_stats bo
+        ON b.player = bo.player
+        WHERE
+            b.runs >= %s
+            AND bo.wickets >= %s
+            AND b.batting_average >= %s
+            AND bo.bowling_average <= %s
+        ORDER BY
+            all_rounder_index DESC,
+            b.runs DESC,
+            bo.wickets DESC
+        LIMIT %s OFFSET %s
+    """
 
     limit, offset = get_pagination()
-
-    query += """
-
-            GROUP BY d.bowler
-
-        ) AS bowling
-
-        ON batting.player = bowling.player
-
-        WHERE
-
-            batting.runs >= 500
-
-            AND bowling.wickets >= 20
-
-        ORDER BY
-
-            all_rounder_index DESC,
-
-            batting.runs DESC,
-
-            bowling.wickets DESC
-
-        LIMIT %s
-        OFFSET %s
-
-    """
-
-    values.extend([limit, offset])
-
-    # Insert INVALID_DISMISSALS at the position corresponding to the
-    # bowling NOT IN %s placeholder. Batting placeholders (season, player)
-    # appear first in `values` (in that order if present). Compute how many
-    # batting placeholders were added to place INVALID_DISMISSALS correctly.
-    batting_count = 0
-    if request.args.get('season', type=int) is not None:
-        batting_count += 1
-    if request.args.get('player'):
-        batting_count += 1
-
-    final_values = values[:batting_count] + [INVALID_DISMISSALS] + values[batting_count:]
-
-    rows = execute_query(
-
-        query,
-
-        tuple(final_values)
-    )
+    values.extend([min_runs, min_wickets, min_batting_average, max_bowling_average, limit, offset])
+    rows = execute_query(query, tuple(values))
 
     if not rows:
-
-        return error_response(
-
-            "No data found",
-
-            404
-        )
+        return error_response("No data found", 404)
 
     players = []
-
     for row in rows:
-
         players.append({
-
             "player": row[0],
-
             "runs": int(row[1]),
-
-            "batting_strike_rate": float(row[2]),
-
-            "wickets": int(row[3]),
-
-            "economy": float(row[4]),
-
-            "all_rounder_index": float(row[5])
+            "batting_strike_rate": float(row[2]) if row[2] is not None else None,
+            "batting_average": float(row[3]) if row[3] is not None else None,
+            "wickets": int(row[4]),
+            "economy": float(row[5]) if row[5] is not None else None,
+            "bowling_average": float(row[6]) if row[6] is not None else None,
+            "all_rounder_index": float(row[7]) if row[7] is not None else None
         })
 
     return success_response({
-
         "count": len(players),
-
         "all_rounders": players
     })

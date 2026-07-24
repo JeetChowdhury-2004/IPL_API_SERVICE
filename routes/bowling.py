@@ -19,7 +19,10 @@ INVALID_DISMISSALS = (
     'run out',
     'retired hurt',
     'retired out',
-    'obstructing the field'
+    'obstructing the field',
+    'hit the ball twice',
+    'handled the ball',
+    'timed out'
 )
 
 # =========================================

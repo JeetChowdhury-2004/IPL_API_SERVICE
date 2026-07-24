@@ -82,7 +82,7 @@
 
             <code>
 
-                http://127.0.0.1:5000{{ api.example_request }}
+                {{ request.url_root.rstrip("/") }}{{ api.example_request }}
 
             </code>
 
@@ -91,7 +91,7 @@
             <button
                 class="mini-copy-btn"
                 onclick="copyText(
-                    'http://127.0.0.1:5000{{ api.example_request }}'
+                    '{{ request.url_root.rstrip("/") }}{{ api.example_request }}'
                 )"
             >
 

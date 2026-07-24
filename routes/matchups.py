@@ -1,6 +1,8 @@
 from flask import Blueprint
 from flask import request
 
+print(">>> LOADED routes/teams.py <<<")
+
 from database.database import get_connection
 
 from team_name_normalization import (
@@ -21,7 +23,15 @@ INVALID_DISMISSALS = (
     'run out',
     'retired hurt',
     'retired out',
-    'obstructing the field'
+    'obstructing the field',
+    'hit the ball twice',
+    'handled the ball',
+    'timed out'
+)
+
+BATTER_NOT_OUT_DISMISSALS = (
+
+    'retired hurt',
 )
 
 # =========================================
@@ -153,6 +163,7 @@ def batter_vs_bowler():
                 CASE
 
                     WHEN d.batsman_run = 4
+                        AND d.is_boundary = TRUE
                     THEN 1
 
                     ELSE 0
@@ -166,6 +177,7 @@ def batter_vs_bowler():
                 CASE
 
                     WHEN d.batsman_run = 6
+                        AND d.is_boundary = TRUE
                     THEN 1
 
                     ELSE 0
@@ -179,6 +191,8 @@ def batter_vs_bowler():
         LEFT JOIN wickets w
 
         ON d.delivery_key = w.delivery_key
+
+        AND d.batter = w.player_out
 
         AND w.dismissal_kind NOT IN %s
 
@@ -196,7 +210,7 @@ def batter_vs_bowler():
 
     values = [
 
-        INVALID_DISMISSALS,
+        BATTER_NOT_OUT_DISMISSALS,
 
         batter,
 
@@ -375,6 +389,7 @@ def batter_vs_team():
                 CASE
 
                     WHEN d.batsman_run = 4
+                        AND d.is_boundary = TRUE
                     THEN 1
 
                     ELSE 0
@@ -388,6 +403,7 @@ def batter_vs_team():
                 CASE
 
                     WHEN d.batsman_run = 6
+                        AND d.is_boundary = TRUE
                     THEN 1
 
                     ELSE 0
@@ -401,6 +417,8 @@ def batter_vs_team():
         LEFT JOIN wickets w
 
         ON d.delivery_key = w.delivery_key
+
+        AND d.batter = w.player_out
 
         AND w.dismissal_kind NOT IN %s
 
@@ -418,7 +436,7 @@ def batter_vs_team():
 
     values = [
 
-        INVALID_DISMISSALS,
+        BATTER_NOT_OUT_DISMISSALS,
 
         batter,
 
@@ -557,7 +575,18 @@ def bowler_vs_team():
                     WHEN d.extra_type LIKE '%%byes%%'
                         OR d.extra_type LIKE '%%legbyes%%'
                         OR d.extra_type LIKE '%%penalty%%'
-                    THEN d.batsman_run
+                    THEN
+                        CASE
+
+                            WHEN d.extra_type LIKE '%%noballs%%'
+                            THEN d.batsman_run + 1
+
+                            WHEN d.extra_type LIKE '%%wides%%'
+                            THEN d.total_run
+
+                            ELSE d.batsman_run
+
+                        END
 
                     ELSE d.total_run
 
@@ -577,7 +606,18 @@ def bowler_vs_team():
                             WHEN d.extra_type LIKE '%%byes%%'
                                 OR d.extra_type LIKE '%%legbyes%%'
                                 OR d.extra_type LIKE '%%penalty%%'
-                            THEN d.batsman_run
+                            THEN
+                                CASE
+
+                                    WHEN d.extra_type LIKE '%%noballs%%'
+                                    THEN d.batsman_run + 1
+
+                                    WHEN d.extra_type LIKE '%%wides%%'
+                                    THEN d.total_run
+
+                                    ELSE d.batsman_run
+
+                                END
 
                             ELSE d.total_run
 
@@ -648,7 +688,18 @@ def bowler_vs_team():
                             WHEN d.extra_type LIKE '%%byes%%'
                                 OR d.extra_type LIKE '%%legbyes%%'
                                 OR d.extra_type LIKE '%%penalty%%'
-                            THEN d.batsman_run
+                            THEN
+                                CASE
+
+                                    WHEN d.extra_type LIKE '%%noballs%%'
+                                    THEN d.batsman_run + 1
+
+                                    WHEN d.extra_type LIKE '%%wides%%'
+                                    THEN d.total_run
+
+                                    ELSE d.batsman_run
+
+                                END
 
                             ELSE d.total_run
 

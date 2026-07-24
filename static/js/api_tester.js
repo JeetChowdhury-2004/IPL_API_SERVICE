@@ -370,13 +370,11 @@ async function runAPI(route, apiId) {
 
         <button
             class="response-copy-btn"
-            onclick='copyText(
-                JSON.stringify(
-                    ${JSON.stringify(data)},
-                    null,
-                    4
-                )
-            )'
+            onclick="copyText(
+                document.querySelector(
+                    '#response-${apiId} .response-json'
+                ).innerText
+            )"
         >
 
             <i class="bi bi-copy"></i>

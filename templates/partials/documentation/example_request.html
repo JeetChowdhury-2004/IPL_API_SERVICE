@@ -13,10 +13,10 @@
     {% with
 
         code_content=
-        "GET http://127.0.0.1:5000" ~ api.example_request,
+        "GET " ~ request.url_root.rstrip("/") ~ api.example_request,
 
         copy_text=
-        "GET http://127.0.0.1:5000" ~ api.example_request
+        "GET " ~ request.url_root.rstrip("/") ~ api.example_request
 
     %}
 

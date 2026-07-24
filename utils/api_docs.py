@@ -7,6 +7,22 @@ from urllib.parse import urlencode
 
 SEASONS = list(range(2008, 2027))
 
+PAGINATION_PARAMS = [
+    {
+        "name": "limit",
+        "type": "integer",
+        "required": False,
+        "default": 10,
+        "max": 100
+    },
+    {
+        "name": "offset",
+        "type": "integer",
+        "required": False,
+        "default": 0
+    }
+]
+
 API_DOCS = {
 
     # =====================================
@@ -148,11 +164,7 @@ API_DOCS = {
             "method": "GET",
             "description": "Returns Orange Cap winners by season.",
             "query_params": [
-                {
-                    "name": "limit",
-                    "type": "integer",
-                    "required": False
-                }
+                *PAGINATION_PARAMS
             ]
         },
 
@@ -733,11 +745,7 @@ API_DOCS = {
             "method": "GET",
             "description": "Returns all matches.",
             "query_params": [
-                {
-                    "name": "limit",
-                    "type": "integer",
-                    "required": False
-                }
+                *PAGINATION_PARAMS
             ]
         },
 
@@ -755,7 +763,8 @@ API_DOCS = {
                     "location": "path",
                     "example": 2024,
                     "allowed_values": SEASONS
-                }
+                },
+                *PAGINATION_PARAMS
             ]
         },
 
@@ -786,7 +795,8 @@ API_DOCS = {
                     "type": "integer",
                     "required": False,
                     "allowed_values": SEASONS
-                }
+                },
+                *PAGINATION_PARAMS
             ]
         },
 
@@ -863,7 +873,8 @@ API_DOCS = {
                     "name": "team",
                     "type": "string",
                     "required": False
-                }
+                },
+                *PAGINATION_PARAMS
             ]
         },
 
@@ -884,7 +895,8 @@ API_DOCS = {
                     "name": "team",
                     "type": "string",
                     "required": False
-                }
+                },
+                *PAGINATION_PARAMS
             ]
         },
 
@@ -905,7 +917,8 @@ API_DOCS = {
                     "name": "team",
                     "type": "string",
                     "required": False
-                }
+                },
+                *PAGINATION_PARAMS
             ]
         },
 
@@ -926,7 +939,8 @@ API_DOCS = {
                     "name": "team",
                     "type": "string",
                     "required": False
-                }
+                },
+                *PAGINATION_PARAMS
             ]
         },
 
@@ -942,7 +956,8 @@ API_DOCS = {
                     "type": "integer",
                     "required": False,
                     "allowed_values": SEASONS
-                }
+                },
+                *PAGINATION_PARAMS
             ]
         },
 
@@ -963,7 +978,8 @@ API_DOCS = {
                     "name": "team",
                     "type": "string",
                     "required": False
-                }
+                },
+                *PAGINATION_PARAMS
             ]
         },
 
@@ -984,7 +1000,8 @@ API_DOCS = {
                     "name": "team",
                     "type": "string",
                     "required": False
-                }
+                },
+                *PAGINATION_PARAMS
             ]
         }
     ]
@@ -996,6 +1013,7 @@ EXAMPLE_VALUES = {
     "bowler": "RA Jadeja",
     "city": "Mumbai",
     "limit": 10,
+    "offset": 0,
     "player": "V Kohli",
     "player_name": "pandya",
     "role": "all",

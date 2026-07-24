@@ -711,6 +711,100 @@ def test_highest_successful_chases_excludes_retired_wickets(monkeypatch):
     assert "retired out" in captured_query[-1]
 
 
+def test_filter_matches_accepts_pagination(monkeypatch):
+    captured_values = []
+
+    def fake_execute_query(query, values=None):
+        captured_values.append(values)
+        return [(
+            1,
+            2024,
+            "Mumbai",
+            "Wankhede Stadium",
+            "Mumbai Indians",
+            "Chennai Super Kings",
+            "Mumbai Indians"
+        )]
+
+    monkeypatch.setattr(
+        matches_module,
+        "execute_query",
+        fake_execute_query
+    )
+
+    client = make_client()
+
+    response = client.get("/matches/filter?limit=3&offset=6")
+
+    assert response.status_code == 200
+    assert captured_values[-1][-2:] == (3, 6)
+
+
+def test_closest_finishes_accepts_pagination(monkeypatch):
+    captured_values = []
+
+    def fake_execute_query(query, values=None):
+        captured_values.append(values)
+        return [(
+            1,
+            2024,
+            "Mumbai Indians",
+            "Chennai Super Kings",
+            "Mumbai Indians",
+            "Wankhede Stadium",
+            "Mumbai",
+            "runs",
+            1,
+            False,
+            "2024-04-01"
+        )]
+
+    monkeypatch.setattr(
+        matches_module,
+        "execute_query",
+        fake_execute_query
+    )
+
+    client = make_client()
+
+    response = client.get("/matches/closest-finishes?limit=2&offset=4")
+
+    assert response.status_code == 200
+    assert captured_values[-1][-2:] == (2, 4)
+
+
+def test_super_over_matches_accepts_pagination(monkeypatch):
+    captured_values = []
+
+    def fake_execute_query(query, values=None):
+        captured_values.append(values)
+        return [(
+            1,
+            2024,
+            "Mumbai Indians",
+            "Chennai Super Kings",
+            "Mumbai Indians",
+            "Wankhede Stadium",
+            "Mumbai",
+            "runs",
+            1,
+            "2024-04-01"
+        )]
+
+    monkeypatch.setattr(
+        matches_module,
+        "execute_query",
+        fake_execute_query
+    )
+
+    client = make_client()
+
+    response = client.get("/matches/super-over-matches?limit=2&offset=4")
+
+    assert response.status_code == 200
+    assert captured_values[-1][-2:] == (2, 4)
+
+
 def test_player_summary_uses_correct_batting_and_bowling_calculations(monkeypatch):
     captured_queries = []
     captured_values = []
@@ -750,12 +844,21 @@ def test_player_summary_uses_correct_batting_and_bowling_calculations(monkeypatc
     assert "d.extra_type LIKE '%%legbyes%%'" in captured_queries[2]
 
 
+def test_bowler_dismissal_exclusions_include_non_bowler_wickets():
+    assert "hit the ball twice" in players_module.INVALID_DISMISSALS
+    assert "handled the ball" in players_module.INVALID_DISMISSALS
+    assert "timed out" in players_module.INVALID_DISMISSALS
+    assert "hit the ball twice" not in players_module.BATTING_NOT_OUT_DISMISSALS
+    assert "handled the ball" not in players_module.BATTING_NOT_OUT_DISMISSALS
+    assert "timed out" not in players_module.BATTING_NOT_OUT_DISMISSALS
+
+
 def test_best_all_rounders_uses_legal_balls_and_bowler_runs(monkeypatch):
     captured_query = []
 
     def fake_execute_query(query, values=None):
         captured_query.append(query)
-        return [("Hardik Pandya", 1200, 140.0, 30, 8.0, 40.0)]
+        return [("Hardik Pandya", 1200, 140.0, 35.0, 30, 8.0, 24.0, 40.0)]
 
     monkeypatch.setattr(
         players_module,
@@ -772,6 +875,62 @@ def test_best_all_rounders_uses_legal_balls_and_bowler_runs(monkeypatch):
     assert "d.extra_type NOT LIKE '%%noballs%%'" in captured_query[-1]
     assert "d.extra_type LIKE '%%byes%%'" in captured_query[-1]
     assert "d.extra_type LIKE '%%legbyes%%'" in captured_query[-1]
+
+
+def test_best_all_rounders_uses_batting_and_bowling_averages(monkeypatch):
+    captured_query = []
+
+    def fake_execute_query(query, values=None):
+        captured_query.append(query)
+        return [("Hardik Pandya", 1200, 140.0, 35.0, 30, 8.0, 24.0, 40.0)]
+
+    monkeypatch.setattr(
+        players_module,
+        "execute_query",
+        fake_execute_query
+    )
+
+    client = make_client()
+
+    response = client.get("/players/best-all-rounders")
+
+    assert response.status_code == 200
+    assert "batting_average" in captured_query[-1]
+    assert "bowling_average" in captured_query[-1]
+    assert "all_rounder_index" in captured_query[-1]
+
+
+def test_best_all_rounders_accepts_season_filter(monkeypatch):
+    captured_values = {}
+
+    def fake_execute_query(query, values=None):
+        captured_values["values"] = values
+        return [("Hardik Pandya", 1200, 140.0, 35.0, 30, 8.0, 24.0, 40.0)]
+
+    monkeypatch.setattr(
+        players_module,
+        "execute_query",
+        fake_execute_query
+    )
+
+    client = make_client()
+
+    response = client.get("/players/best-all-rounders?season=2019")
+
+    assert response.status_code == 200
+    assert captured_values["values"][0] == (
+        players_module.BATTING_NOT_OUT_DISMISSALS
+    )
+    assert captured_values["values"][1] == 2019
+    assert captured_values["values"][2] == players_module.INVALID_DISMISSALS
+    assert captured_values["values"][3] == players_module.INVALID_DISMISSALS
+    assert captured_values["values"][4] == 2019
+    assert captured_values["values"][5] == 100
+    assert captured_values["values"][6] == 5
+    assert captured_values["values"][7] == 10
+    assert captured_values["values"][8] == 60
+    assert captured_values["values"][9] == 10
+    assert captured_values["values"][10] == 0
 
 
 def test_team_most_wins_groups_normalized_names(monkeypatch):
@@ -888,6 +1047,55 @@ def test_batter_vs_bowler_uses_legal_balls(monkeypatch):
     assert "d.extra_type NOT LIKE '%%noballs%%'" in captured_query[-1]
 
 
+def test_batter_matchups_count_only_batter_dismissals(monkeypatch):
+    captured_query = []
+    captured_values = []
+
+    def fake_execute_query(query, values=None):
+        captured_query.append(query)
+        captured_values.append(values)
+        return [("Virat Kohli", "Mumbai Indians", 20, 30, 1, 150.0, 30.0, 2, 1)]
+
+    monkeypatch.setattr(
+        matchups_module,
+        "execute_query",
+        fake_execute_query
+    )
+
+    client = make_client()
+
+    response = client.get(
+        "/matchups/batter-vs-team?batter=Virat%20Kohli&team=Mumbai%20Indians"
+    )
+
+    assert response.status_code == 200
+    assert "AND d.batter = w.player_out" in captured_query[-1]
+    assert "run out" not in captured_values[-1][0]
+
+
+def test_batter_matchups_count_only_real_boundaries(monkeypatch):
+    captured_query = []
+
+    def fake_execute_query(query, values=None):
+        captured_query.append(query)
+        return [("Virat Kohli", "Jasprit Bumrah", 10, 15, 1, 150.0, 2, 1)]
+
+    monkeypatch.setattr(
+        matchups_module,
+        "execute_query",
+        fake_execute_query
+    )
+
+    client = make_client()
+
+    response = client.get(
+        "/matchups/batter-vs-bowler?batter=Virat%20Kohli&bowler=Jasprit%20Bumrah"
+    )
+
+    assert response.status_code == 200
+    assert "AND d.is_boundary = TRUE" in captured_query[-1]
+
+
 def test_bowler_vs_team_excludes_byes_from_bowler_runs(monkeypatch):
     captured_query = []
 
@@ -910,6 +1118,7 @@ def test_bowler_vs_team_excludes_byes_from_bowler_runs(monkeypatch):
     assert response.status_code == 200
     assert "d.extra_type LIKE '%%byes%%'" in captured_query[-1]
     assert "d.extra_type LIKE '%%legbyes%%'" in captured_query[-1]
+    assert "THEN d.batsman_run + 1" in captured_query[-1]
 
 
 def test_public_json_apis_use_standard_response_shape():

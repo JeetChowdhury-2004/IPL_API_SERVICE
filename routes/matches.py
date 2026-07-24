@@ -316,6 +316,8 @@ def filter_matches():
         type=int
     )
 
+    limit, offset = get_pagination()
+
     query = """
 
         SELECT
@@ -337,14 +339,20 @@ def filter_matches():
 
     if team:
 
+        team = normalize_team_name(team)
+
         query += """
 
             AND (
-                team1 = %s
-                OR team2 = %s
+                {team1} = %s
+                OR {team2} = %s
             )
 
-        """
+        """.format(
+
+            team1=normalized_team_sql("team1"),
+            team2=normalized_team_sql("team2")
+        )
 
         values.extend([team, team])
 
@@ -360,11 +368,16 @@ def filter_matches():
 
     if winner:
 
+        winner = normalize_team_name(winner)
+
         query += """
 
-            AND winner = %s
+            AND {winner} = %s
 
-        """
+        """.format(
+
+            winner=normalized_team_sql("winner")
+        )
 
         values.append(winner)
 
@@ -382,9 +395,12 @@ def filter_matches():
 
         ORDER BY match_date ASC
 
-        LIMIT 50
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -876,6 +892,8 @@ def highest_run_chases():
 
             i1.batting_team AS defending_team,
 
+            m.match_id,
+
             m.venue,
 
             m.city,
@@ -884,7 +902,7 @@ def highest_run_chases():
 
             m.winner,
 
-            m.result_margin,
+            m.result_margin AS wickets_remaining,
 
             m.match_date
 
@@ -908,6 +926,10 @@ def highest_run_chases():
 
             AND m.winner = i2.batting_team
 
+            AND i2.total_runs >= i1.total_runs + 1
+
+            AND i1.batting_team <> i2.batting_team
+
     """
 
     values = []
@@ -930,11 +952,18 @@ def highest_run_chases():
 
         query += """
 
-            AND i2.batting_team = %s
+            AND (
+                {chasing_team} = %s
+                OR {defending_team} = %s
+            )
 
-        """
+        """.format(
 
-        values.append(team)
+            chasing_team=normalized_team_sql("i2.batting_team"),
+            defending_team=normalized_team_sql("i1.batting_team")
+        )
+
+        values.extend([team, team])
 
     limit, offset = get_pagination()
 
@@ -983,31 +1012,56 @@ def highest_run_chases():
 
     for row in rows:
 
+        if len(row) >= 10:
+            season_value = row[0]
+            chasing_team = row[1]
+            defending_team = row[2]
+            match_id = row[3]
+            venue = row[4]
+            city = row[5]
+            target = row[6]
+            winner = row[7]
+            wickets_remaining = row[8]
+            match_date = row[9]
+        else:
+            season_value = row[0]
+            chasing_team = row[1]
+            defending_team = row[2]
+            match_id = None
+            venue = row[3]
+            city = row[4]
+            target = row[5]
+            winner = row[6]
+            wickets_remaining = row[7]
+            match_date = row[8]
+
         chases.append({
 
-            "season": row[0],
+            "season": season_value,
 
             "chasing_team": normalize_team_name(
-                row[1]
+                chasing_team
             ),
 
             "defending_team": normalize_team_name(
-                row[2]
+                defending_team
             ),
 
-            "venue": row[3],
+            "match_id": match_id,
 
-            "city": row[4],
+            "venue": venue,
 
-            "target": int(row[5]),
+            "city": city,
+
+            "target": int(target),
 
             "winner": normalize_team_name(
-                row[6]
+                winner
             ),
 
-            "wickets_remaining": int(row[7]),
+            "wickets_remaining": int(wickets_remaining),
 
-            "match_date": str(row[8])
+            "match_date": str(match_date)
         })
 
     return success_response({
@@ -1221,46 +1275,72 @@ def lowest_defended_scores():
 
     query = """
 
+        WITH innings_totals AS (
+
+            SELECT
+
+                d.match_id,
+
+                d.innings,
+
+                d.batting_team,
+
+                SUM(d.total_run) AS total_runs
+
+            FROM deliveries d
+
+            WHERE d.innings IN (1, 2)
+
+            GROUP BY
+
+                d.match_id,
+                d.innings,
+                d.batting_team
+        )
+
         SELECT
 
-            d.match_id,
+            m.match_id,
 
             m.season,
 
-            d.batting_team AS defending_team,
+            i1.batting_team AS defending_team,
 
-            CASE
-
-                WHEN d.batting_team = m.team1
-                THEN m.team2
-
-                ELSE m.team1
-
-            END AS chasing_team,
+            i2.batting_team AS chasing_team,
 
             m.venue,
 
             m.city,
 
-            SUM(d.total_run) AS defended_score,
+            i1.total_runs AS defended_score,
 
             m.winner,
 
             m.result_margin
 
-        FROM deliveries d
+        FROM innings_totals i1
+
+        JOIN innings_totals i2
+
+        ON i1.match_id = i2.match_id
 
         JOIN matches m
 
-        ON d.match_id = m.match_id
+        ON m.match_id = i1.match_id
 
         WHERE
 
-            d.innings = 1
+            i1.innings = 1
+
+            AND i2.innings = 2
+
+            AND i1.batting_team <> i2.batting_team
 
             AND m.result_type = 'runs'
 
-            AND m.winner = d.batting_team
+            AND m.winner = i1.batting_team
+
+            AND i2.total_runs < i1.total_runs
 
     """
 
@@ -1274,11 +1354,18 @@ def lowest_defended_scores():
 
         query += """
 
-            AND d.batting_team = %s
+            AND (
+                {defending_team} = %s
+                OR {chasing_team} = %s
+            )
 
-        """
+        """.format(
 
-        values.append(team)
+            defending_team=normalized_team_sql("i1.batting_team"),
+            chasing_team=normalized_team_sql("i2.batting_team")
+        )
+
+        values.extend([team, team])
 
     # ====================================
     # SEASON FILTER
@@ -1295,26 +1382,6 @@ def lowest_defended_scores():
         values.append(season)
 
     limit, offset = get_pagination()
-
-    # ====================================
-    # GROUPING
-    # ====================================
-
-    query += """
-
-        GROUP BY
-
-            d.match_id,
-            m.season,
-            d.batting_team,
-            m.team1,
-            m.team2,
-            m.venue,
-            m.city,
-            m.winner,
-            m.result_margin
-
-    """
 
     # ====================================
     # ORDERING
@@ -1594,6 +1661,8 @@ def closest_finishes():
         type=int
     )
 
+    limit, offset = get_pagination()
+
     # ====================================
     # BASE QUERY
     # ====================================
@@ -1676,9 +1745,12 @@ def closest_finishes():
 
             match_date DESC
 
-        LIMIT 20
+        LIMIT %s
+        OFFSET %s
 
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -1770,6 +1842,8 @@ def super_over_matches():
 
         team = normalize_team_name(team)
 
+    limit, offset = get_pagination()
+
     # ====================================
     # BASE QUERY
     # ====================================
@@ -1856,7 +1930,12 @@ def super_over_matches():
 
             match_date DESC
 
+        LIMIT %s
+        OFFSET %s
+
     """
+
+    values.extend([limit, offset])
 
     rows = execute_query(
 
@@ -1942,6 +2021,8 @@ def highest_successful_chases():
 
         team = normalize_team_name(team)
 
+    limit, offset = get_pagination()
+
     query = """
 
         WITH innings_totals AS (
@@ -1962,9 +2043,13 @@ def highest_successful_chases():
 
                         WHEN w.player_out IS NOT NULL
                             AND w.dismissal_kind NOT IN (
+                                'run out',
                                 'retired hurt',
                                 'retired out',
-                                'obstructing the field'
+                                'obstructing the field',
+                                'hit the ball twice',
+                                'handled the ball',
+                                'timed out'
                             )
                         THEN w.player_out
 
@@ -2030,6 +2115,8 @@ def highest_successful_chases():
 
             AND m.winner = i2.batting_team
 
+            AND i1.batting_team <> i2.batting_team
+
     """
 
     values = []
@@ -2052,11 +2139,18 @@ def highest_successful_chases():
 
         query += """
 
-            AND i2.batting_team = %s
+            AND (
+                {chasing_team} = %s
+                OR {defending_team} = %s
+            )
 
-        """
+        """.format(
 
-        values.append(team)
+            chasing_team=normalized_team_sql("i2.batting_team"),
+            defending_team=normalized_team_sql("i1.batting_team")
+        )
+
+        values.extend([team, team])
 
     limit, offset = get_pagination()
 
